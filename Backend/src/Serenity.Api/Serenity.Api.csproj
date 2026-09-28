@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <PackageReference Include="MediatR" Version="12.5.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />
+    <PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Serenity.Application\Serenity.Application.csproj" />
+    <ProjectReference Include="..\Serenity.Infrastructure\Serenity.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <!-- Contenido inicial (imágenes + contenido.json): se copia junto al binario. -->
+  <ItemGroup>
+    <Content Include="..\..\seed\**\*" Link="seed\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Serenity.Api/Serenity.Api.csproj" />
+    <Project Path="src/Serenity.Application/Serenity.Application.csproj" />
+    <Project Path="src/Serenity.Domain/Serenity.Domain.csproj" />
+    <Project Path="src/Serenity.Infrastructure/Serenity.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Serenity.Tests/Serenity.Tests.csproj" />
+  </Folder>
+</Solution>

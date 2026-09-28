@@ -1,0 +1,113 @@
+# Grupo Serenity — stack completo: postgres · minio · api (.NET 10) · web (nginx + SPA)
+# Uso:  cp .env.example .env  (ajusta secretos)  &&  docker compose up --build -d
+name: serenity
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: serenity_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: serenity_db
+      POSTGRES_USER: serenity_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD en .env}
+    ports:
+      # 5434 en el host: 5432 (postgres nativo) y 5433 (urbanos) suelen estar ocupados.
+      - "${POSTGRES_PORT:-5434}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U serenity_user -d serenity_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  minio:
+    image: quay.io/minio/minio:RELEASE.2024-10-13T13-34-11Z
+    container_name: serenity_minio
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: ${MINIO_USER:-serenity_minio}
+      MINIO_ROOT_PASSWORD: ${MINIO_PASSWORD:?Define MINIO_PASSWORD en .env}
+    command: server /data --console-address ":9001"
+    ports:
+      - "${MINIO_API_PORT:-9012}:9000"
+      - "${MINIO_CONSOLE_PORT:-9013}:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Crea el bucket con lectura pública (las imágenes se sirven por /media) y termina.
+  minio-init:
+    image: quay.io/minio/mc:RELEASE.2024-10-08T09-37-26Z
+    container_name: serenity_minio_init
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_USER: ${MINIO_USER:-serenity_minio}
+      MINIO_PASSWORD: ${MINIO_PASSWORD}
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 $$MINIO_USER $$MINIO_PASSWORD &&
+      mc mb --ignore-existing local/serenity-media &&
+      mc anonymous set download local/serenity-media &&
+      echo 'Bucket serenity-media listo'
+      "
+    restart: "no"
+
+  api:
+    build:
+      context: ./Backend
+      dockerfile: src/Serenity.Api/Dockerfile
+    container_name: serenity_api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+      ConnectionStrings__Default: "Host=postgres;Port=5432;Database=serenity_db;Username=serenity_user;Password=${POSTGRES_PASSWORD}"
+      Jwt__Key: ${JWT_KEY:?Define JWT_KEY en .env (mínimo 32 caracteres)}
+      Jwt__Issuer: serenity-api
+      Jwt__Audience: serenity-frontend
+      Admin__Nombre: ${ADMIN_NOMBRE:-Administrador}
+      Admin__Correo: ${ADMIN_CORREO:?Define ADMIN_CORREO en .env}
+      Admin__Password: ${ADMIN_PASSWORD:?Define ADMIN_PASSWORD en .env}
+      Storage__Endpoint: "http://minio:9000"
+      Storage__Bucket: serenity-media
+      Storage__AccessKey: ${MINIO_USER:-serenity_minio}
+      Storage__SecretKey: ${MINIO_PASSWORD}
+      Storage__ForcePathStyle: "true"
+      # Ruta relativa: nginx (web) publica /media → minio. En producción puede ser un CDN.
+      Storage__UrlPublicaBase: ${MEDIA_PUBLIC_BASE:-/media}
+      Cors__AllowedOrigins__0: ${PUBLIC_ORIGIN:-http://localhost:8090}
+    ports:
+      - "${API_PORT:-8081}:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  web:
+    build:
+      context: ./Frontend
+    container_name: serenity_web
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "${WEB_PORT:-8090}:80"
+
+volumes:
+  postgres_data:
+  minio_data:

@@ -1,0 +1,190 @@
+{
+  "secciones": {
+    "marca": {
+      "nombre": "Grupo Serenity",
+      "tituloSitio": "Grupo Serenity · Viaja ligero, vive sereno",
+      "leyenda": "Hospitalidad\ncon intención",
+      "logoAlt": "Grupo Serenity",
+      "logoArchivo": "logo.png",
+      "pajaroArchivo": "colibri.png"
+    },
+    "navegacion": {
+      "items": [
+        { "texto": "Inicio", "href": "#inicio" },
+        { "texto": "La experiencia", "href": "#experiencia" },
+        { "texto": "Destinos", "href": "#destinos" },
+        { "texto": "Reseñas", "href": "#resenas" }
+      ],
+      "ctaTexto": "Reservar",
+      "ctaHref": "#reservas"
+    },
+    "anuncio": {
+      "activo": true,
+      "texto": "Escapadas que se sienten como hogar",
+      "ctaTexto": "Planear mi estadía",
+      "ctaHref": "#reservas"
+    },
+    "hero": {
+      "kicker": "Grupo Serenity",
+      "titulo": "El descanso\n*también* es un destino.",
+      "texto": "Espacios para bajar el ritmo, reconectar con lo esencial y vivir cada viaje con la calma que mereces.",
+      "ctaPrimarioTexto": "Explorar destinos",
+      "ctaPrimarioHref": "#destinos",
+      "ctaSecundarioTexto": "Conoce nuestra esencia",
+      "ctaSecundarioHref": "#experiencia",
+      "imagenPrincipalArchivo": "hero-piscina.jpeg",
+      "imagenPrincipalAlt": "Piscina frente al mar en Santa Marta",
+      "imagenSecundariaArchivo": "hero-sala.jpeg",
+      "imagenSecundariaAlt": "Sala luminosa de un alojamiento Serenity",
+      "notaDestinos": "destinos para reconectar",
+      "selloLinea1": "Vive",
+      "selloCentral": "sereno",
+      "selloLinea3": "viaja ligero"
+    },
+    "intro": {
+      "etiqueta": "La experiencia Serenity",
+      "titulo": "Un lugar para quedarte.\n*Una sensación para llevarte.*",
+      "lead": "No creemos en hospedarse. Creemos en llegar, respirar profundo y sentir que todo está en su lugar.",
+      "texto": "Desde las playas cálidas de Santa Marta hasta los paisajes verdes de La Dorada, diseñamos estadías que se viven sin prisa: con espacios cuidados, atención cercana y la libertad de hacer tuyo cada momento.",
+      "enlaceTexto": "Descubre la diferencia",
+      "enlaceHref": "#destinos",
+      "cita": "Hospitalidad genuina, espacios con alma y tiempo para lo que de verdad importa.",
+      "firma": "— Equipo Serenity"
+    },
+    "valores": {
+      "etiqueta": "Lo que nos mueve",
+      "titulo": "Todo lo que necesitas.\n*Nada de lo que sobra.*",
+      "texto": "Pequeños detalles que convierten una estadía en un recuerdo que quieres repetir."
+    },
+    "destinos": {
+      "etiqueta": "Elige tu escenario",
+      "titulo": "¿Playa o\n*montaña?*",
+      "texto": "Dos paisajes. Una misma forma de descansar.\nTú eliges el ritmo.",
+      "franjaEtiqueta": "Elige tu próxima pausa",
+      "franjaTitulo": "Tu refugio te está esperando.",
+      "chipMarca": "Serenity"
+    },
+    "resenas": {
+      "etiqueta": "Palabras que nos quedan",
+      "titulo": "Lo dicen\n*quienes vuelven.*",
+      "calificacion": "4.9",
+      "detalle": "Basado en 20 reseñas en Google",
+      "enlaceTexto": "Déjanos tu reseña",
+      "enlaceUrl": "https://search.google.com/local/writereview?placeid=ChIJkXP8g8P19I4RpO4ougiNzOY"
+    },
+    "reservas": {
+      "etiqueta": "Empieza aquí",
+      "titulo": "Tu próxima\n*pausa* comienza\ncon un mensaje.",
+      "texto": "Cuéntanos qué estás buscando y te ayudamos a encontrar el espacio que se sienta como tuyo.",
+      "whatsappTexto": "Escribir por WhatsApp",
+      "whatsappUrl": "http://wa.link/57cc3y",
+      "nota": "Respondemos en el menor tiempo posible",
+      "formTitulo": "Solicitud de reserva",
+      "formSubtitulo": "Te leemos",
+      "botonTexto": "Enviar solicitud",
+      "aviso": "Al enviar aceptas que te contactemos para gestionar tu solicitud.",
+      "exitoTitulo": "Gracias por escribirnos",
+      "exitoDescripcion": "Tu solicitud quedó lista. Te contactaremos muy pronto para ayudarte a elegir."
+    },
+    "footer": {
+      "eslogan": "Viaja ligero.\n*Vive sereno.*",
+      "redesTitulo": "Síguenos",
+      "facebookUrl": "https://www.facebook.com/Reservadelmar.612",
+      "instagramUrl": "https://www.instagram.com/gruposerenity",
+      "youtubeUrl": "http://www.youtube.com/@SerenityGroupVacacional",
+      "copyright": "© 2026 Grupo Serenity",
+      "frase": "Hecho para descansar mejor",
+      "sitioActualTexto": "Visitar sitio actual",
+      "sitioActualUrl": "https://www.gruposerenity.com/"
+    }
+  },
+  "proyectos": [
+    {
+      "nombre": "Santa Marta",
+      "etiqueta": "Playa",
+      "icono": "waves",
+      "ubicacionEtiqueta": "Santa Marta · Magdalena",
+      "titulo": "El mar cerca.",
+      "descripcion": "Días de sol, piscina y brisa salada. Un refugio para disfrutar la costa caribeña a tu manera.",
+      "metaLugar": "Reserva del Mar",
+      "metaEstancia": "Escapadas desde 2 noches",
+      "urlReserva": "https://www.gruposerenity.com/shop/",
+      "ctaTexto": "Ver alojamientos",
+      "publicado": true,
+      "imagenes": [
+        { "archivo": "santa-marta.jpeg", "textoAlt": "Casa con piscina en Santa Marta" },
+        { "archivo": "estadia-1.jpeg", "textoAlt": "Detalle de alojamiento Serenity" }
+      ]
+    },
+    {
+      "nombre": "La Dorada, Caldas",
+      "etiqueta": "Montaña",
+      "icono": "mountain",
+      "ubicacionEtiqueta": "La Dorada · Caldas",
+      "titulo": "La calma verde.",
+      "descripcion": "Naturaleza, río y tardes lentas. El lugar perfecto para desconectarte del ruido y volver a ti.",
+      "metaLugar": "Caldas, Colombia",
+      "metaEstancia": "Escapadas desde 2 noches",
+      "urlReserva": "https://www.gruposerenity.com/shop/",
+      "ctaTexto": "Ver alojamientos",
+      "publicado": true,
+      "imagenes": [
+        { "archivo": "hero-sala.jpeg", "textoAlt": "Interior luminoso de un alojamiento Serenity" },
+        { "archivo": "hero-piscina.jpeg", "textoAlt": "Detalle de alojamiento Serenity" }
+      ]
+    }
+  ],
+  "resenas": [
+    {
+      "texto": "Excelente lugar. Muy bonito, muy limpio. Súper recomendado.",
+      "autor": "Beatriz Muñoz",
+      "contexto": "Estadía en Santa Marta",
+      "calificacion": 5,
+      "publicada": true
+    },
+    {
+      "texto": "Los apartamentos son muy cómodos y agradables. Las instalaciones y piscinas, impecables.",
+      "autor": "Diego Betancourth",
+      "contexto": "Huésped Serenity",
+      "calificacion": 5,
+      "publicada": true
+    },
+    {
+      "texto": "Muy acogedor y con todo lo necesario para pasar unas excelentes vacaciones.",
+      "autor": "Margie Gamboa",
+      "contexto": "Viaje familiar",
+      "calificacion": 5,
+      "publicada": true
+    }
+  ],
+  "valores": [
+    {
+      "titulo": "Atención personal",
+      "descripcion": "Estamos cerca antes, durante y después de tu viaje.",
+      "icono": "heart-handshake",
+      "variante": "normal",
+      "activo": true
+    },
+    {
+      "titulo": "Alojamientos con alma",
+      "descripcion": "Espacios pensados para sentirse bien desde el primer momento.",
+      "icono": "sparkles",
+      "variante": "alta",
+      "activo": true
+    },
+    {
+      "titulo": "Reserva tranquila",
+      "descripcion": "Un proceso claro, seguro y acompañado.",
+      "icono": "shield-check",
+      "variante": "normal",
+      "activo": true
+    },
+    {
+      "titulo": "Ubicaciones que inspiran",
+      "descripcion": "Elige entre la energía del mar o el silencio de la montaña.",
+      "icono": "map-pin",
+      "variante": "ancha",
+      "activo": true
+    }
+  ]
+}

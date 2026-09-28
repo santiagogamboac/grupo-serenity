@@ -1,0 +1,26 @@
+# Secretos y estado local
+.env
+*.env.local
+
+# .NET
+**/bin/
+**/obj/
+**/logs/
+.vs/
+*.user
+
+# Node / frontend
+**/node_modules/
+Frontend/dist/
+Frontend/.manus-logs/
+*.tsbuildinfo
+
+# Herramientas / editor
+.playwright-mcp/
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
