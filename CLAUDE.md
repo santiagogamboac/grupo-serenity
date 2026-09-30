@@ -44,6 +44,10 @@ Clean Architecture estricta: `Api → Application, Infrastructure`; `Infrastruct
   del admin con `seed/contenido.json` + `seed/images/`. Campos `xxxArchivo` del JSON se suben y se convierten en `xxxMediaId`.
 - **Almacenamiento**: `IAlmacenamientoObjetos` sobre S3 (MinIO en dev). El SDK cierra el stream tras `PutObject`: toma
   tamaños antes de subir.
+- **Anuncios de Airbnb / calendario**: `Features/Anuncios/` (CRUD por proyecto, `AnuncioSyncService`, disponibilidad pública),
+  parser en `Common/Ical.cs`, worker `Api/Workers/AirbnbSyncWorker.cs`. Cada `ical_url` se registra contra un anuncio y su id
+  debe coincidir con el de `/rooms/<id>`; solo se aceptan hosts de Airbnb (el servidor descarga esa URL: evita SSRF) y la URL
+  es secreta: nunca en la API pública ni en logs/errores. Plan y pendientes: `Task/pending/calendario/README.md`.
 - Íconos permitidos: `Domain/Catalogos/Catalogos.cs` ↔ `Frontend/client/src/lib/icons.ts` (mantener sincronizados).
 
 ## Frontend (`Frontend/client/src`)

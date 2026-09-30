@@ -304,6 +304,134 @@ seccion('Solicitudes')
   ok('rate limit: la ráfaga produce 429', rafaga.includes(429), rafaga.join(','))
 }
 
+// ─── 7b. Anuncios de Airbnb y calendario (iCal) ─────────────────────────────
+seccion('Anuncios de Airbnb y sincronización de calendario')
+{
+  const proyectos = (await api('GET', '/api/admin/proyectos')).json
+  const proyecto = proyectos.find((p) => p.publicado) ?? proyectos[0]
+  const base = `/api/admin/proyectos/${proyecto.id}/anuncios`
+  const ROOM = '900000000000000001'
+  const urlAnuncio = `https://www.airbnb.com.co/rooms/${ROOM}?source_impression_id=p3_x`
+  const cuerpo = (extra = {}) => ({ nombre: 'Anuncio smoke', urlAnuncio, ...extra })
+
+  ok('sin token → 401', (await api('GET', base, { auth: false })).status === 401)
+  ok('proyecto inexistente → 404', (await api('GET', '/api/admin/proyectos/999999/anuncios')).status === 404)
+  ok('URL que no es de Airbnb → 400', (await api('POST', base, { body: cuerpo({ urlAnuncio: 'https://example.com/rooms/1' }) })).status === 400)
+  ok('iCal de un host ajeno (SSRF) → 400', (await api('POST', base, { body: cuerpo({ icalUrl: 'https://interno.local/a.ics' }) })).status === 400)
+  ok('iCal sin https → 400', (await api('POST', base, { body: cuerpo({ icalUrl: `http://www.airbnb.com/calendar/ical/${ROOM}.ics` }) })).status === 400)
+  ok('iCal de otro anuncio (id distinto) → 400', (await api('POST', base, { body: cuerpo({ icalUrl: 'https://www.airbnb.com/calendar/ical/123.ics?s=x' }) })).status === 400)
+
+  const sinIcal = await api('POST', base, { body: cuerpo() })
+  ok('crear anuncio sin iCal → 201', sinIcal.status === 201 && sinIcal.json.airbnbRoomId === ROOM)
+  ok('sin iCal no hay estado de sincronización', sinIcal.json?.ultimaSyncOk === null && sinIcal.json?.ultimaSyncError === null)
+  ok('mismo anuncio otra vez → 409', (await api('POST', base, { body: cuerpo({ nombre: 'Otro' }) })).status === 409)
+  ok('sincronizar sin iCal → 400', (await api('POST', `/api/admin/anuncios/${sinIcal.json.id}/sincronizar`)).status === 400)
+  ok('sincronizar inexistente → 404', (await api('POST', '/api/admin/anuncios/999999/sincronizar')).status === 404)
+  ok('el listado incluye el anuncio', (await api('GET', base)).json.some((a) => a.id === sinIcal.json.id))
+
+  // Con un enlace de Airbnb que no existe la descarga falla; el anuncio se guarda igual y registra el motivo.
+  const icalFalso = `https://www.airbnb.com/calendar/ical/${ROOM}.ics?s=secreto-falso`
+  const conFallo = await api('PUT', `/api/admin/anuncios/${sinIcal.json.id}`, { body: cuerpo({ icalUrl: icalFalso }) })
+  ok('guardar iCal inservible → 200 con error registrado', conFallo.status === 200 && !!conFallo.json.ultimaSyncError && conFallo.json.ultimaSyncOk === null)
+  ok('el error no filtra la URL con el secreto', !JSON.stringify(conFallo.json.ultimaSyncError).includes('secreto-falso'))
+
+  // Disponibilidad pública
+  const dispUrl = `/api/public/proyectos/${proyecto.slug}/disponibilidad`
+  const d0 = await api('GET', dispUrl, { auth: false })
+  ok('disponibilidad pública → 200 y sin datos secretos', d0.status === 200 && !d0.texto.includes('icalUrl') && !d0.texto.includes('secreto-falso') && !d0.texto.includes(ROOM + '.ics'))
+  ok('anuncio sin sincronizar: no se afirma ocupación del proyecto', d0.json.ocupadoProyecto.length === 0 && d0.json.anuncios.some((a) => a.id === sinIcal.json.id && a.sincronizado === false))
+  ok('slug inexistente → 404', (await api('GET', '/api/public/proyectos/no-existe/disponibilidad', { auth: false })).status === 404)
+  ok('rango invertido → 400', (await api('GET', `${dispUrl}?desde=2027-02-01&hasta=2027-01-01`, { auth: false })).status === 400)
+  ok('rango de más de 400 días → 400', (await api('GET', `${dispUrl}?desde=2027-01-01&hasta=2029-01-01`, { auth: false })).status === 400)
+
+  // Camino feliz: hace falta un iCal servible y poder reapuntar el anuncio (el API solo acepta hosts de Airbnb).
+  const { execFileSync } = await import('node:child_process')
+  const { createServer } = await import('node:http')
+  // Usuario y base los toma del propio contenedor (POSTGRES_USER / POSTGRES_DB); el SQL viaja como argumento, sin comillas de shell.
+  const psql = (sql) =>
+    execFileSync('docker', ['exec', 'serenity_postgres', 'sh', '-c', 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "$0"', sql], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
+      .toString()
+      .trim()
+  let dockerOk = false
+  try {
+    dockerOk = psql('SELECT 1') === '1'
+  } catch {
+    /* sin docker: se omite el camino feliz */
+  }
+
+  if (!dockerOk) {
+    console.log('  (sin acceso a docker/postgres: se omite la sincronización real)')
+  } else {
+    const ics = (eventos) => `BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Airbnb Inc//Hosting Calendar 0.8.8//EN\r\n${eventos}END:VCALENDAR\r\n`
+    const ev = (uid, a, b) => `BEGIN:VEVENT\r\nDTEND;VALUE=DATE:${b}\r\nDTSTART;VALUE=DATE:${a}\r\nUID:${uid}\r\nSUMMARY:Reserved\r\nEND:VEVENT\r\n`
+    let contenido = ics(ev('r1@airbnb.com', '20270110', '20270115') + ev('r2@airbnb.com', '20270128', '20270202'))
+    let estado = 200
+    const servidor = createServer((_, res) => {
+      res.writeHead(estado, { 'Content-Type': 'text/calendar' })
+      res.end(contenido)
+    })
+    await new Promise((r) => servidor.listen(9555, '0.0.0.0', r))
+    const id = sinIcal.json.id
+    const apuntar = (url) => psql(`UPDATE anuncios SET ical_url='${url}' WHERE id=${id}`)
+    const rango = '?desde=2027-01-01&hasta=2027-03-01'
+    const ocupado = async () => (await api('GET', dispUrl + rango, { auth: false })).json.anuncios.find((a) => a.id === id)
+    try {
+      apuntar('http://host.docker.internal:9555/cal.ics')
+      const s1 = await api('POST', `/api/admin/anuncios/${id}/sincronizar`)
+      ok('sincronizar → 200, sin error y con fecha de éxito', s1.status === 200 && s1.json.ultimaSyncError === null && !!s1.json.ultimaSyncOk)
+
+      const d1 = (await api('GET', dispUrl + rango, { auth: false })).json
+      const a1 = d1.anuncios.find((a) => a.id === id)
+      const esperado = [
+        { desde: '2027-01-10', hasta: '2027-01-15' },
+        { desde: '2027-01-28', hasta: '2027-02-02' },
+      ]
+      ok('noches ocupadas = [10-15 ene) y [28 ene-2 feb)', JSON.stringify(a1.ocupado) === JSON.stringify(esperado), JSON.stringify(a1.ocupado))
+      ok('el día de salida (15 ene) no está ocupado', !a1.ocupado.some((r) => r.desde <= '2027-01-15' && '2027-01-15' < r.hasta))
+      const sinSync = d1.anuncios.filter((a) => a.id !== id && !a.sincronizado).length
+      ok('proyecto ocupado solo si todos sus anuncios están sincronizados', sinSync > 0 ? d1.ocupadoProyecto.length === 0 : d1.ocupadoProyecto.length === 2)
+
+      // Refresco bajo demanda: con el último intento viejo, consultar la disponibilidad vuelve a descargar.
+      contenido = ics(ev('r3@airbnb.com', '20270120', '20270122'))
+      psql(`UPDATE anuncios SET ultima_sync_intento = now() - interval '10 minutes' WHERE id=${id}`)
+      const a2 = await ocupado()
+      ok('consultar con caché vencida refresca el calendario', JSON.stringify(a2.ocupado) === JSON.stringify([{ desde: '2027-01-20', hasta: '2027-01-22' }]), JSON.stringify(a2.ocupado))
+
+      // Dentro de la ventana no se vuelve a descargar (una sola descarga para muchas visitas).
+      contenido = ics(ev('r4@airbnb.com', '20270301', '20270303'))
+      const a3 = await ocupado()
+      ok('dentro de la ventana no vuelve a descargar', a3.ocupado.length === 1 && a3.ocupado[0].desde === '2027-01-20')
+
+      // Un fallo del servidor del calendario conserva los bloqueos previos y registra el error.
+      estado = 503
+      const s2 = await api('POST', `/api/admin/anuncios/${id}/sincronizar`)
+      ok('fallo de descarga → error registrado', s2.status === 200 && /503/.test(s2.json.ultimaSyncError ?? ''))
+      const a4 = await ocupado()
+      ok('un fallo conserva los bloqueos anteriores', a4.ocupado.length === 1 && a4.ocupado[0].desde === '2027-01-20')
+
+      // Una página HTML (login, error) no es un iCal: no debe vaciar el calendario.
+      estado = 200
+      contenido = '<html>Inicia sesión</html>'
+      const s3 = await api('POST', `/api/admin/anuncios/${id}/sincronizar`)
+      ok('respuesta que no es iCal → error, no vacía el calendario', !!s3.json.ultimaSyncError && (await ocupado()).ocupado.length === 1)
+
+      // Cambiar o quitar el enlace descarta los bloqueos del calendario anterior.
+      const quitado = await api('PUT', `/api/admin/anuncios/${id}`, { body: cuerpo({ icalUrl: '' }) })
+      ok('quitar el iCal → 200 y sin estado de sincronización', quitado.status === 200 && quitado.json.icalUrl === null && quitado.json.ultimaSyncOk === null)
+      const a5 = await ocupado()
+      ok('quitar el iCal descarta sus bloqueos', a5.ocupado.length === 0 && a5.sincronizado === false)
+    } finally {
+      servidor.close()
+    }
+  }
+
+  ok('borrar anuncio → 204', (await api('DELETE', `/api/admin/anuncios/${sinIcal.json.id}`)).status === 204)
+  ok('borrar anuncio otra vez → 404', (await api('DELETE', `/api/admin/anuncios/${sinIcal.json.id}`)).status === 404)
+  ok('ya no aparece en la disponibilidad pública', !(await api('GET', dispUrl, { auth: false })).json.anuncios.some((a) => a.id === sinIcal.json.id))
+}
+
 // ─── 8. Limpieza y cambio de contraseña ─────────────────────────────────────
 seccion('Limpieza')
 {

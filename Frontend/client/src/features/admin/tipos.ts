@@ -113,3 +113,19 @@ export interface SolicitudAdmin {
 
 /** Contenido del admin: igual al público pero con los ids de imagen a la vista. */
 export type ContenidoAdmin = Contenido;
+
+export interface AnuncioInput {
+  nombre: string;
+  urlAnuncio: string;
+  icalUrl: string | null;
+  publicado: boolean;
+}
+
+export interface AnuncioAdmin extends AnuncioInput {
+  id: number;
+  proyectoId: number;
+  airbnbRoomId: string;
+  ultimaSyncIntento: string | null;
+  ultimaSyncOk: string | null;
+  ultimaSyncError: string | null;
+}

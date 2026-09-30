@@ -3,6 +3,8 @@ import { toast } from "sonner";
 import { api, mensajeDeError } from "@/lib/api";
 import type { SeccionClave } from "@/lib/types";
 import type {
+  AnuncioAdmin,
+  AnuncioInput,
   Catalogos,
   ContenidoAdmin,
   Dashboard,
@@ -26,6 +28,7 @@ const K = {
   valores: ["admin", "valores"] as const,
   solicitudes: ["admin", "solicitudes"] as const,
   media: ["admin", "media"] as const,
+  anuncios: ["admin", "anuncios"] as const,
 };
 
 /** Cualquier cambio del admin puede alterar lo que ve la landing. */
@@ -69,6 +72,12 @@ export const useProyecto = (id: number | null) =>
     queryKey: [...K.proyectos, id],
     queryFn: () => get<ProyectoAdmin>(`/admin/proyectos/${id}`),
     enabled: id !== null,
+  });
+
+export const useAnuncios = (proyectoId: number) =>
+  useQuery({
+    queryKey: [...K.anuncios, proyectoId],
+    queryFn: () => get<AnuncioAdmin[]>(`/admin/proyectos/${proyectoId}/anuncios`),
   });
 
 export const useResenas = () => useQuery({ queryKey: K.resenas, queryFn: () => get<ResenaAdmin[]>("/admin/resenas") });
@@ -146,6 +155,25 @@ export const useReordenarImagenesProyecto = () =>
     ({ id, ids }: { id: number; ids: number[] }) => api.put(`/admin/proyectos/${id}/imagenes/orden`, { ids }),
     [K.proyectos]
   );
+
+export const useCrearAnuncio = () =>
+  useMutacion(
+    async ({ proyectoId, datos }: { proyectoId: number; datos: AnuncioInput }) =>
+      (await api.post<AnuncioAdmin>(`/admin/proyectos/${proyectoId}/anuncios`, datos)).data,
+    [K.anuncios]
+  );
+
+export const useActualizarAnuncio = () =>
+  useMutacion(
+    async ({ id, datos }: { id: number; datos: AnuncioInput }) => (await api.put<AnuncioAdmin>(`/admin/anuncios/${id}`, datos)).data,
+    [K.anuncios]
+  );
+
+export const useEliminarAnuncio = () =>
+  useMutacion((id: number) => api.delete(`/admin/anuncios/${id}`), [K.anuncios], "Anuncio eliminado");
+
+export const useSincronizarAnuncio = () =>
+  useMutacion(async (id: number) => (await api.post<AnuncioAdmin>(`/admin/anuncios/${id}/sincronizar`)).data, [K.anuncios]);
 
 export const useCrearResena = () =>
   useMutacion((d: ResenaInput) => api.post("/admin/resenas", d), [K.resenas, K.dashboard], "Reseña creada");

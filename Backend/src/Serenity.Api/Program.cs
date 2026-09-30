@@ -28,6 +28,9 @@ try
     builder.Services.AddApplication();
     builder.Services.AddInfrastructure(builder.Configuration);
     builder.Services.AddScoped<DatabaseSeeder>();
+    builder.Services.AddSingleton(builder.Configuration.GetSection("Airbnb").Get<Serenity.Application.Features.Anuncios.OpcionesAirbnb>()
+                                  ?? new Serenity.Application.Features.Anuncios.OpcionesAirbnb());
+    builder.Services.AddHostedService<Serenity.Api.Workers.AirbnbSyncWorker>();
 
     // ─── JWT ──────────────────────────────────────────────────────────────────
     var jwt = builder.Configuration.GetSection("Jwt");

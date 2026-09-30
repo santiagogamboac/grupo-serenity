@@ -3,6 +3,21 @@
 **Objetivo:** que las fechas ocupadas en Airbnb se reflejen en el sitio, y saber **a qué anuncio pertenece** cada calendario
 cuando hay varios. Contexto: `../16-airbnb-calendario-resenas.md`. Reseñas: `../reviews/README.md`.
 
+## 0. Estado de implementación (2026-09-29)
+**Hecho (Fase A + B):** migración `V002` (`anuncios`, `disponibilidad_bloqueos`); CRUD de anuncios por proyecto con su enlace iCal
+(validación cruzada de ids y solo dominios de Airbnb); worker de sincronización (`Airbnb:SyncMinutos`, 5 por defecto);
+«Sincronizar ahora»; refresco bajo demanda con turno atómico en BD (`Airbnb:RefrescoBajoDemandaSegundos`, 120);
+`GET /api/public/proyectos/{slug}/disponibilidad`; sección «Anuncios de Airbnb» en el formulario de proyecto del admin;
+tests unitarios + bloque 7b del smoke.
+
+**Pendiente:**
+- [ ] Enlace iCal real de cada anuncio (lo aporta el cliente) y comprobar el formato real de la URL `/calendar/ical/<id>.ics`.
+- [ ] Sitio público: deshabilitar días ocupados en el formulario de reserva (consume `disponibilidad`).
+- [ ] C — bloqueo provisional de solicitudes (`solicitudes.anuncio_id`, bloqueo `origen='solicitud'`) y 409 al pedir fechas ocupadas.
+      Hoy la solicitud solo guarda fecha de llegada (sin salida), así que primero hay que decidir si se agrega fecha de salida.
+- [ ] Feed de salida `.ics` por anuncio (con token) para importarlo en Airbnb.
+- [ ] Bloqueos manuales (`origen='manual'`) desde el admin.
+
 ## 1. Qué es y qué no es el iCal de Airbnb (según el centro de ayuda de Airbnb)
 - Es **por anuncio**: se elige el anuncio en Calendario y se exporta/importa su enlace. No hay un iCal "de toda la cuenta".
 - Una URL de importación debe terminar en `.ics`.

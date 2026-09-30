@@ -21,6 +21,7 @@ public static class DependencyInjection
         services.AddScoped<Features.Auth.EmisorSesion>();
         services.AddScoped<Features.Contenido.CargadorContenido>();
         services.AddScoped<Features.Proyectos.ProyectoEnsamblador>();
+        services.AddScoped<Features.Anuncios.AnuncioSyncService>();
 
         return services;
     }

@@ -87,6 +87,7 @@ services:
       Storage__ForcePathStyle: "true"
       # Ruta relativa: nginx (web) publica /media → minio. En producción puede ser un CDN.
       Storage__UrlPublicaBase: ${MEDIA_PUBLIC_BASE:-/media}
+      Airbnb__SyncMinutos: ${AIRBNB_SYNC_MINUTOS:-5}
       Cors__AllowedOrigins__0: ${PUBLIC_ORIGIN:-http://localhost:8090}
     ports:
       - "${API_PORT:-8081}:8080"

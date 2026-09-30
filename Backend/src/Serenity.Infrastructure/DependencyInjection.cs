@@ -35,6 +35,8 @@ public static class DependencyInjection
         services.AddScoped<ISolicitudRepository, SolicitudRepository>();
         services.AddScoped<IDashboardRepository, DashboardRepository>();
         services.AddScoped<IEstadoAppRepository, EstadoAppRepository>();
+        services.AddScoped<IAnuncioRepository, AnuncioRepository>();
+        services.AddSingleton<IIcalClient, HttpIcalClient>();
 
         services.AddSingleton<IPasswordHasher, BcryptPasswordHasher>();
         services.AddSingleton<IJwtTokenService, JwtTokenService>();

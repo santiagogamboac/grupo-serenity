@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Serenity.Application.Features.Anuncios;
 using Serenity.Application.Features.Publico;
 using Serenity.Application.Features.Solicitudes;
 
@@ -19,6 +20,14 @@ public sealed class PublicoController(IMediator mediator) : ApiControllerBase(me
         // Sin caché compartida: lo que el admin guarda debe verse al recargar.
         Response.Headers.CacheControl = "no-cache";
         return Ok(await Mediator.Send(new ObtenerHomeQuery(), ct));
+    }
+
+    /// <summary>Noches ocupadas por anuncio y del proyecto completo. Sin datos de huéspedes ni enlaces secretos.</summary>
+    [HttpGet("proyectos/{slug}/disponibilidad")]
+    public async Task<IActionResult> Disponibilidad(string slug, [FromQuery] DateOnly? desde, [FromQuery] DateOnly? hasta, CancellationToken ct)
+    {
+        Response.Headers.CacheControl = "no-cache";
+        return Responder(await Mediator.Send(new ObtenerDisponibilidadQuery(slug, desde, hasta), ct));
     }
 
     /// <summary>Solicitud de reserva desde el formulario. Honeypot lleno → 202 sin persistir.</summary>
