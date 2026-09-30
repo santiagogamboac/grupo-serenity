@@ -4,6 +4,7 @@ import { TEXTOS } from "@/features/public/textos";
 import { useHome } from "@/features/public/useHome";
 import { useScrollEffects } from "@/features/public/useScrollEffects";
 import { BarraAnuncio, ColibriScroll, Encabezado } from "@/features/public/sections/Cabecera";
+import { Galeria } from "@/features/public/sections/Galeria";
 import { Destinos } from "@/features/public/sections/Destinos";
 import { Pie } from "@/features/public/sections/Pie";
 import { Experiencia, Portada } from "@/features/public/sections/Portada";
@@ -53,6 +54,7 @@ export default function Home() {
       <Experiencia intro={c.intro} />
       <Valores seccion={c.valores} valores={valores} />
       <Destinos seccion={c.destinos} proyectos={proyectos} />
+      <Galeria seccion={c.destinos} proyectos={proyectos} />
       <Resenas seccion={c.resenas} resenas={resenas} />
       <Reservas seccion={c.reservas} proyectos={proyectos} />
       <Pie marca={c.marca} footer={c.footer} />
