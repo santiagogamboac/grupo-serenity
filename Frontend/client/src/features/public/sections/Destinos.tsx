@@ -15,7 +15,6 @@ export function Destinos({ seccion, proyectos }: { seccion: DestinosContenido; p
   const indice = Math.min(seleccion, proyectos.length - 1);
   const activo = proyectos[indice];
   const foto = activo.imagenes[0];
-  const franja = activo.imagenes[1] ?? foto;
 
   return (
     <section className="destinations-section section-pad" id="destinos">
@@ -88,18 +87,6 @@ export function Destinos({ seccion, proyectos }: { seccion: DestinosContenido; p
           </div>
         </div>
 
-        {franja && (
-          <div className="destination-strip">
-            <img src={franja.url} alt={franja.textoAlt} />
-            <div>
-              <span>{seccion.franjaEtiqueta}</span>
-              <strong>{seccion.franjaTitulo}</strong>
-            </div>
-            <a href="#reservas" aria-label={TEXTOS.irAReservas}>
-              <ArrowUpRight size={20} />
-            </a>
-          </div>
-        )}
       </div>
     </section>
   );
