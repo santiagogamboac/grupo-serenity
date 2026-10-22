@@ -162,12 +162,21 @@ public sealed class ActualizarProyectoCommandHandler(IProyectoRepository proyect
 
 public sealed record EliminarProyectoCommand(long Id) : IRequest<Result>;
 
-public sealed class EliminarProyectoCommandHandler(IProyectoRepository proyectos) : IRequestHandler<EliminarProyectoCommand, Result>
+public sealed class EliminarProyectoCommandHandler(IProyectoRepository proyectos, IAlojamientoRepository alojamientos)
+    : IRequestHandler<EliminarProyectoCommand, Result>
 {
     public async Task<Result> Handle(EliminarProyectoCommand request, CancellationToken ct)
-        => await proyectos.EliminarAsync(request.Id, ct)
+    {
+        // Las reservas conservan su historia: un proyecto con reservas solo se despublica.
+        if (await alojamientos.ProyectoTieneReservasAsync(request.Id, ct))
+        {
+            return Result.Failure("Este proyecto tiene reservas registradas: no se puede eliminar. Despublícalo para ocultarlo.", ErrorTipo.Conflicto);
+        }
+
+        return await proyectos.EliminarAsync(request.Id, ct)
             ? Result.Success()
             : Result.Failure("El proyecto no existe.", ErrorTipo.NoEncontrado);
+    }
 }
 
 public sealed record ReordenarProyectosCommand(IReadOnlyList<long> Ids) : IRequest<Result>;

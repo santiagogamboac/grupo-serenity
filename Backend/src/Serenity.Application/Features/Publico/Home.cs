@@ -1,6 +1,7 @@
 using MediatR;
 using Serenity.Application.Features.Contenido;
 using Serenity.Application.Features.Proyectos;
+using Serenity.Application.Features.Reservas;
 using Serenity.Application.Interfaces;
 using Serenity.Application.Models;
 using Serenity.Domain;
@@ -22,7 +23,8 @@ public sealed record HomeDto(
     IReadOnlyDictionary<string, object> Contenido,
     IReadOnlyList<ProyectoPublicoDto> Proyectos,
     IReadOnlyList<ValorPublicoDto> Valores,
-    IReadOnlyList<ResenaPublicaDto> Resenas);
+    IReadOnlyList<ResenaPublicaDto> Resenas,
+    ReservaDirectaDto ReservaDirecta);
 
 public sealed record ObtenerHomeQuery : IRequest<HomeDto>;
 
@@ -31,7 +33,10 @@ public sealed class ObtenerHomeQueryHandler(
     IProyectoRepository proyectos,
     ProyectoEnsamblador ensamblador,
     IValorRepository valores,
-    IResenaRepository resenas) : IRequestHandler<ObtenerHomeQuery, HomeDto>
+    IResenaRepository resenas,
+    IAlojamientoRepository alojamientos,
+    AlojamientoEnsamblador alojamientoEnsamblador,
+    OpcionesWompi wompi) : IRequestHandler<ObtenerHomeQuery, HomeDto>
 {
     public async Task<HomeDto> Handle(ObtenerHomeQuery request, CancellationToken ct)
     {
@@ -40,6 +45,8 @@ public sealed class ObtenerHomeQueryHandler(
         var proyectosDto = await ensamblador.EnsamblarAsync(await proyectos.ListarAsync(soloPublicados: true, ct), ct);
         var valoresDto = await valores.ListarAsync(soloActivos: true, ct);
         var resenasDto = await resenas.ListarAsync(soloPublicadas: true, ct);
+        var alojamientosLista = await alojamientos.ListarPublicosAsync(ct);
+        var imagenes = await alojamientoEnsamblador.ImagenesAsync(alojamientosLista, ct);
 
         return new HomeDto(
             // object (no la interfaz) para que System.Text.Json serialice el tipo concreto de cada sección.
@@ -49,7 +56,10 @@ public sealed class ObtenerHomeQueryHandler(
                 p.MetaLugar, p.MetaEstancia, p.UrlReserva, p.CtaTexto,
                 p.Imagenes.Select(i => new ProyectoImagenPublicaDto(i.Id, i.Url, i.TextoAlt)).ToList())).ToList(),
             valoresDto.Select(v => new ValorPublicoDto(v.Id, v.Titulo, v.Descripcion, v.Icono, v.Variante)).ToList(),
-            resenasDto.Select(r => new ResenaPublicaDto(r.Id, r.Autor, r.Contexto, r.Texto, r.Calificacion)).ToList());
+            resenasDto.Select(r => new ResenaPublicaDto(r.Id, r.Autor, r.Contexto, r.Texto, r.Calificacion)).ToList(),
+            new ReservaDirectaDto(wompi.Habilitado, alojamientosLista.Select(a => new AlojamientoPublicoDto(
+                a.Id, a.ProyectoId, a.Nombre, a.Descripcion, a.ImagenMediaId is { } m ? imagenes.GetValueOrDefault(m) : null,
+                a.Capacidad, a.HuespedesIncluidos, a.PrecioNoche, a.RecargoHuespedExtra, a.TarifaAseo, a.EstanciaMinima)).ToList()));
     }
 }
 
@@ -66,6 +76,7 @@ public sealed record CatalogosDto(
     IReadOnlyList<string> Iconos,
     IReadOnlyList<string> VariantesValor,
     IReadOnlyList<string> EstadosSolicitud,
+    IReadOnlyList<string> EstadosReserva,
     IReadOnlyList<string> Secciones);
 
 public sealed record ObtenerCatalogosQuery : IRequest<CatalogosDto>;
@@ -74,5 +85,5 @@ public sealed class ObtenerCatalogosQueryHandler : IRequestHandler<ObtenerCatalo
 {
     public Task<CatalogosDto> Handle(ObtenerCatalogosQuery request, CancellationToken ct)
         => Task.FromResult(new CatalogosDto(
-            Catalogos.Iconos, Catalogos.VariantesValor, EstadosSolicitud.Todos, SeccionesRegistro.Claves.ToList()));
+            Catalogos.Iconos, Catalogos.VariantesValor, EstadosSolicitud.Todos, EstadosReserva.Todos, SeccionesRegistro.Claves.ToList()));
 }

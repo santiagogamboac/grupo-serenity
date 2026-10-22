@@ -82,7 +82,11 @@ internal sealed class DashboardRepository(DbConnectionFactory db) : IDashboardRe
               (SELECT COUNT(*) FROM proyectos WHERE publicado)::int          AS proyectos_publicados,
               (SELECT COUNT(*) FROM proyectos)::int                          AS proyectos_total,
               (SELECT COUNT(*) FROM resenas WHERE publicada)::int            AS resenas_publicadas,
-              (SELECT COUNT(*) FROM valores WHERE activo)::int               AS valores_activos
+              (SELECT COUNT(*) FROM valores WHERE activo)::int               AS valores_activos,
+              (SELECT COUNT(*) FROM reservas WHERE estado = 'pendiente_pago' AND expira_en > now())::int AS reservas_pendientes_pago,
+              (SELECT COUNT(*) FROM reservas WHERE estado = 'revision')::int AS reservas_en_revision,
+              -- Confirmadas que aún no terminan (hoy en Colombia = UTC-5).
+              (SELECT COUNT(*) FROM reservas WHERE estado = 'confirmada' AND salida > (now() AT TIME ZONE 'UTC' - interval '5 hours')::date)::int AS reservas_proximas
             """, cancellationToken: ct));
     }
 }

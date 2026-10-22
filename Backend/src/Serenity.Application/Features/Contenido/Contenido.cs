@@ -133,6 +133,11 @@ public sealed class ReservasValidator : AbstractValidator<ReservasContenido>
         RuleFor(x => x.Aviso).Texto(240, requerido: false);
         RuleFor(x => x.ExitoTitulo).Texto(120);
         RuleFor(x => x.ExitoDescripcion).Texto(300);
+        RuleFor(x => x.ReservaTitulo).Texto(80, requerido: false);
+        RuleFor(x => x.ReservaSubtitulo).Texto(80, requerido: false);
+        RuleFor(x => x.ReservaBotonTexto).Texto(60, requerido: false);
+        RuleFor(x => x.Condiciones).Texto(1000, requerido: false);
+        RuleFor(x => x.ReservaSinPagoTexto).Texto(300, requerido: false);
     }
 }
 

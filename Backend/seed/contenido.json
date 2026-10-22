@@ -84,7 +84,12 @@
       "botonTexto": "Enviar solicitud",
       "aviso": "Al enviar aceptas que te contactemos para gestionar tu solicitud.",
       "exitoTitulo": "Gracias por escribirnos",
-      "exitoDescripcion": "Tu solicitud quedó lista. Te contactaremos muy pronto para ayudarte a elegir."
+      "exitoDescripcion": "Tu solicitud quedó lista. Te contactaremos muy pronto para ayudarte a elegir.",
+      "reservaTitulo": "Reserva en línea",
+      "reservaSubtitulo": "Pago seguro con Wompi",
+      "reservaBotonTexto": "Reservar y pagar",
+      "condiciones": "Al reservar aceptas las condiciones de la estadía. Si necesitas cambiar fechas o cancelar, escríbenos por WhatsApp y te ayudamos.",
+      "reservaSinPagoTexto": "Tus fechas quedaron apartadas. Te escribiremos muy pronto para coordinar el pago y confirmar la reserva."
     },
     "footer": {
       "eslogan": "Viaja ligero.\n*Vive sereno.*",

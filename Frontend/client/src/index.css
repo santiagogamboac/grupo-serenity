@@ -404,3 +404,100 @@ h1 em, h2 em, h3 em, .footer-slogan em { font-style: italic; font-weight: 400; }
 @media (max-width: 900px) { .gallery-grid { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 190px; gap: 12px; } .gallery-tile--0 { grid-column: span 2; } .gallery-tile--3 { grid-column: span 2; } }
 @media (max-width: 640px) { .gallery-grid { grid-auto-rows: 150px; gap: 10px; } .gallery-tile { border-radius: 22px; } .gallery-caption strong { font-size: 17px; } .lightbox { padding: 12px; } .lightbox-prev { left: 8px; } .lightbox-next { right: 8px; } .lightbox-btn { width: 44px; height: 44px; } }
 @media (prefers-reduced-motion: reduce) { .gallery-tile, .gallery-heading[data-aparecer] { opacity: 1; transform: none; } }
+
+/* ─── Reserva directa (pestañas, alojamientos, calendario, resumen) ───────────── */
+.reserva-modos { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin: -8px 0 24px; padding: 4px; border-radius: 999px; background: var(--sand); }
+.reserva-modos button { min-height: 42px; border: 0; border-radius: 999px; background: transparent; color: var(--ink-soft); font: inherit; font-size: 14px; font-weight: 800; cursor: pointer; transition: background .2s ease, color .2s ease, box-shadow .2s ease; }
+.reserva-modos button:hover { color: var(--ink); }
+.reserva-modos button.is-activo { background: #fff; color: var(--teal); box-shadow: 0 2px 10px rgba(29, 58, 69, .1); }
+.reserva-modos button:focus-visible, .alojamiento-opcion:focus-visible, .calendario-limpiar:focus-visible { outline: 3px solid rgba(31, 86, 100, .35); outline-offset: 2px; }
+.reserva-subtitulo { display: inline-flex; align-items: center; gap: 8px; }
+.reserva-subtitulo svg { color: var(--teal); }
+.reserva-bloque { margin: 0 0 18px; padding: 0; border: 0; min-width: 0; }
+.reserva-bloque legend { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 10px; padding: 0; color: var(--ink); font-size: 14px; font-weight: 800; }
+.reserva-ayuda { margin: 6px 0 0; color: var(--ink-soft); font-size: 13px; line-height: 1.5; }
+.reserva-ayuda--error { color: #a44040; font-weight: 700; }
+.booking-form textarea { width: 100%; margin-top: 7px; padding: 12px 16px; outline: none; border: 1.5px solid rgba(29, 58, 69, .16); border-radius: 16px; background: #fff; color: var(--ink); font: inherit; font-size: 16px; font-weight: 500; resize: vertical; transition: border-color .2s ease, box-shadow .2s ease; }
+.booking-form textarea:focus { border-color: var(--teal); box-shadow: 0 0 0 4px rgba(31, 86, 100, .14); }
+
+.alojamiento-lista { display: grid; gap: 10px; }
+.alojamiento-opcion { display: flex; align-items: center; gap: 14px; width: 100%; padding: 10px; border: 1.5px solid rgba(29, 58, 69, .14); border-radius: 20px; background: #fff; color: var(--ink); font: inherit; text-align: left; cursor: pointer; transition: border-color .2s ease, box-shadow .2s ease, background .2s ease; }
+.alojamiento-opcion:hover { border-color: rgba(31, 86, 100, .45); }
+.alojamiento-opcion.is-activo { border-color: var(--teal); background: #f3faf7; box-shadow: 0 0 0 3px rgba(31, 86, 100, .14); }
+.alojamiento-opcion img { flex: 0 0 auto; width: 76px; height: 64px; border-radius: 14px; object-fit: cover; }
+.alojamiento-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.alojamiento-info strong { font-size: 16px; line-height: 1.3; }
+.alojamiento-meta { display: inline-flex; align-items: center; gap: 5px; color: var(--ink-soft); font-size: 13px; font-weight: 600; }
+.alojamiento-precio { color: var(--ink-soft); font-size: 13px; }
+.alojamiento-precio b { color: var(--warm); font-size: 15px; }
+.alojamiento-descripcion { margin: 10px 2px 0; color: var(--ink-soft); font-size: 14px; line-height: 1.6; }
+
+/* Calendario (react-day-picker con clases propias) */
+.calendario-reserva { margin-bottom: 14px; padding: 14px 12px 10px; border: 1.5px solid rgba(29, 58, 69, .12); border-radius: 22px; background: #fff; }
+.cal { position: relative; }
+.cal-caption { display: flex; align-items: center; height: 40px; padding: 0 6px; }
+.cal-caption-label { font-family: var(--font-title); font-size: 19px; font-weight: 500; text-transform: capitalize; }
+.cal-nav { position: absolute; top: 0; right: 0; display: flex; gap: 4px; }
+.cal-nav-btn { width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 50%; background: var(--sand); color: var(--teal); cursor: pointer; transition: background .2s ease; }
+.cal-nav-btn:hover:not([disabled]) { background: var(--peach); }
+.cal-nav-btn[disabled] { opacity: .35; cursor: default; }
+.cal-chevron { width: 18px; height: 18px; fill: currentColor; }
+.cal-grid { width: 100%; margin-top: 6px; border-collapse: collapse; table-layout: fixed; }
+.cal-weekday { padding: 6px 0; color: var(--ink-soft); font-size: 12px; font-weight: 800; text-transform: uppercase; }
+.cal-day { padding: 2px 0; text-align: center; }
+.cal-day-btn { width: 100%; max-width: 44px; height: 40px; border: 0; border-radius: 12px; background: transparent; color: var(--ink); font: inherit; font-size: 15px; font-weight: 700; cursor: pointer; transition: background .15s ease, color .15s ease; }
+.cal-day-btn:hover:not([disabled]) { background: var(--mint); }
+.cal-day-btn:focus-visible { outline: 3px solid rgba(31, 86, 100, .4); outline-offset: 1px; }
+.cal-hoy .cal-day-btn { box-shadow: inset 0 0 0 1.5px rgba(31, 86, 100, .4); }
+.cal-deshabilitado .cal-day-btn { color: #b4bfc1; cursor: default; }
+.cal-ocupado .cal-day-btn { color: #b4bfc1; text-decoration: line-through; text-decoration-color: rgba(164, 64, 64, .55); background: repeating-linear-gradient(135deg, transparent 0 5px, rgba(29, 58, 69, .05) 5px 7px); }
+.cal-en-rango .cal-day-btn { border-radius: 0; background: var(--mint); color: var(--teal-deep); }
+.cal-inicio .cal-day-btn, .cal-fin .cal-day-btn { background: var(--teal) !important; color: #fff !important; text-decoration: none; }
+.cal-oculto { visibility: hidden; }
+.calendario-pie { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin-top: 6px; padding: 0 6px; }
+.calendario-pie .reserva-ayuda { flex: 1 1 100%; margin: 0; }
+.calendario-limpiar { padding: 0; border: 0; background: none; color: var(--teal); font: inherit; font-size: 13px; font-weight: 800; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.calendario-leyenda { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; color: var(--ink-soft); font-size: 12px; }
+.calendario-leyenda i { width: 14px; height: 14px; border-radius: 4px; background: repeating-linear-gradient(135deg, #fff 0 3px, rgba(29, 58, 69, .2) 3px 5px); border: 1px solid rgba(29, 58, 69, .15); }
+.reserva-noches { display: flex; flex-direction: column; justify-content: center; margin-bottom: 16px; padding: 8px 16px; border-radius: 16px; background: var(--sand); }
+.reserva-noches span { color: var(--ink-soft); font-size: 13px; font-weight: 700; }
+.reserva-noches strong { font-size: 15px; }
+
+.reserva-resumen { margin: 0 0 20px; padding: 16px 18px; border-radius: 20px; background: #f6f2ea; }
+.reserva-resumen dl { margin: 0; transition: opacity .2s ease; }
+.reserva-resumen dl.is-cargando { opacity: .55; }
+.reserva-resumen dl > div, .reserva-card__detalle > div { display: flex; justify-content: space-between; gap: 16px; padding: 5px 0; font-size: 14px; }
+.reserva-resumen dt, .reserva-card__detalle dt { color: var(--ink-soft); }
+.reserva-resumen dd, .reserva-card__detalle dd { margin: 0; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+.reserva-total { margin-top: 6px; padding-top: 10px !important; border-top: 1.5px dashed rgba(29, 58, 69, .18); }
+.reserva-total dt { color: var(--ink) !important; font-weight: 800; }
+.reserva-total dd { color: var(--warm); font-size: 18px; font-weight: 800; }
+.reserva-condiciones { margin: 0 0 12px; padding: 12px 14px; border-radius: 14px; background: var(--sky); color: var(--ink); font-size: 13px; line-height: 1.55; }
+.booking-form .reserva-acepto { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 6px; font-weight: 700; cursor: pointer; }
+.booking-form .reserva-acepto input { flex: 0 0 auto; width: 20px; height: 20px; margin: 2px 0 0; accent-color: var(--teal); }
+
+/* Página de una reserva (/reserva/:codigo) */
+.reserva-page { min-height: 100vh; padding: 28px 16px 64px; background: linear-gradient(180deg, var(--sand), var(--cream) 320px); }
+.reserva-page__cabecera { display: flex; justify-content: center; margin-bottom: 28px; }
+.reserva-page__marca img { width: 72px; height: 72px; padding: 8px; border-radius: 22px; background: #fff; box-shadow: var(--shadow-card); }
+.reserva-page__marca span { font-family: var(--font-title); font-size: 28px; }
+.reserva-card { max-width: 560px; margin: 0 auto; padding: 36px 34px 28px; border-radius: 32px; background: #fffdf9; box-shadow: var(--shadow-lift); text-align: center; }
+.reserva-card__estado { display: flex; flex-direction: column; align-items: center; gap: 10px; padding-bottom: 24px; }
+.reserva-card__estado h1 { margin: 4px 0 0; font-family: var(--font-title); font-size: clamp(28px, 6vw, 36px); font-weight: 500; line-height: 1.15; }
+.reserva-card__estado > p { max-width: 420px; margin: 0; color: var(--ink-soft); line-height: 1.6; }
+.reserva-card__estado > svg { color: var(--sun); }
+.reserva-card__estado--confirmada > svg { color: #2f8a5b; }
+.reserva-card__estado--pago_rechazado > svg, .reserva-card__estado--expirada > svg, .reserva-card__estado--cancelada > svg { color: #a44040; }
+.reserva-card__estado--revision > svg { color: var(--warm); }
+.reserva-card__estado .button--solid { margin-top: 10px; }
+.reserva-card__detalle { margin: 0 0 22px; padding: 16px 18px; border-radius: 20px; background: #f6f2ea; text-align: left; }
+.reserva-codigo { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .06em; }
+.reserva-spinner { width: 36px; height: 36px; border: 3px solid var(--mint); border-top-color: var(--teal); border-radius: 50%; animation: giro .9s linear infinite; }
+@keyframes giro { to { transform: rotate(360deg); } }
+@media (max-width: 640px) {
+  .reserva-modos { margin-top: -4px; }
+  .alojamiento-opcion img { width: 64px; height: 56px; }
+  .calendario-reserva { padding: 10px 6px 8px; }
+  .cal-day-btn { height: 38px; font-size: 14px; }
+  .reserva-card { padding: 28px 20px 22px; border-radius: 26px; }
+}

@@ -22,6 +22,10 @@ public static class DependencyInjection
         services.AddScoped<Features.Contenido.CargadorContenido>();
         services.AddScoped<Features.Proyectos.ProyectoEnsamblador>();
         services.AddScoped<Features.Anuncios.AnuncioSyncService>();
+        services.AddScoped<Features.Reservas.AlojamientoEnsamblador>();
+        services.AddScoped<Features.Reservas.CalendarioAlojamientos>();
+        services.AddScoped<Features.Reservas.ProcesadorPagos>();
+        services.AddScoped<Features.Notificaciones.Notificador>();
 
         return services;
     }

@@ -129,4 +129,7 @@ public sealed class DashboardDto
     public int ProyectosTotal { get; init; }
     public int ResenasPublicadas { get; init; }
     public int ValoresActivos { get; init; }
+    public int ReservasPendientesPago { get; init; }
+    public int ReservasEnRevision { get; init; }
+    public int ReservasProximas { get; init; }
 }

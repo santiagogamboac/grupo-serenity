@@ -89,6 +89,24 @@ services:
       Storage__UrlPublicaBase: ${MEDIA_PUBLIC_BASE:-/media}
       Airbnb__SyncMinutos: ${AIRBNB_SYNC_MINUTOS:-5}
       Cors__AllowedOrigins__0: ${PUBLIC_ORIGIN:-http://localhost:8090}
+      # Reserva directa: el origen público arma la URL de regreso de Wompi, el feed .ics y los enlaces de los correos.
+      Reservas__UrlSitio: ${PUBLIC_ORIGIN:-http://localhost:8090}
+      Reservas__MinutosRetencion: ${RESERVAS_MINUTOS_RETENCION:-30}
+      Reservas__MinutosRetencionSinPago: ${RESERVAS_MINUTOS_RETENCION_SIN_PAGO:-1440}
+      # Pago en línea: sin estas llaves queda apagado (las reservas se confirman a mano desde el panel).
+      Wompi__Ambiente: ${WOMPI_AMBIENTE:-sandbox}
+      Wompi__LlavePublica: ${WOMPI_LLAVE_PUBLICA:-}
+      Wompi__LlavePrivada: ${WOMPI_LLAVE_PRIVADA:-}
+      Wompi__SecretoIntegridad: ${WOMPI_SECRETO_INTEGRIDAD:-}
+      Wompi__SecretoEventos: ${WOMPI_SECRETO_EVENTOS:-}
+      # Correo (avisos al equipo y confirmaciones al huésped): sin SMTP_HOST no se envía nada.
+      Smtp__Host: ${SMTP_HOST:-}
+      Smtp__Puerto: ${SMTP_PUERTO:-587}
+      Smtp__Ssl: ${SMTP_SSL:-true}
+      Smtp__Usuario: ${SMTP_USUARIO:-}
+      Smtp__Password: ${SMTP_PASSWORD:-}
+      Smtp__Remitente: ${SMTP_REMITENTE:-}
+      Notificaciones__CorreoEquipo: ${CORREO_EQUIPO:-}
     ports:
       - "${API_PORT:-8081}:8080"
     healthcheck:
@@ -108,6 +126,16 @@ services:
         condition: service_healthy
     ports:
       - "${WEB_PORT:-8090}:80"
+
+  # Solo desarrollo (docker compose --profile dev up): captura los correos y los muestra en http://localhost:8027.
+  # Con SMTP_HOST=mailpit, SMTP_PUERTO=1025 y SMTP_SSL=false en .env.
+  mailpit:
+    image: axllent/mailpit:v1.21.8
+    container_name: serenity_mailpit
+    profiles: ["dev"]
+    restart: unless-stopped
+    ports:
+      - "${MAILPIT_UI_PORT:-8027}:8025"
 
 volumes:
   postgres_data:

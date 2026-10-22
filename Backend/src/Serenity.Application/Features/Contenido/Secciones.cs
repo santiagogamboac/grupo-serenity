@@ -174,6 +174,13 @@ public sealed record ReservasContenido : ISeccionContenido
     public string ExitoTitulo { get; init; } = "";
     public string ExitoDescripcion { get; init; } = "";
 
+    // Reserva en línea (alojamientos con precio y pago con Wompi).
+    public string ReservaTitulo { get; init; } = "";
+    public string ReservaSubtitulo { get; init; } = "";
+    public string ReservaBotonTexto { get; init; } = "";
+    public string Condiciones { get; init; } = "";
+    public string ReservaSinPagoTexto { get; init; } = "";
+
     public IEnumerable<long> MediaIds() => [];
     public ISeccionContenido ConMedia(IReadOnlyDictionary<long, MediaDto> m) => this;
     public ISeccionContenido ParaGuardar() => this;

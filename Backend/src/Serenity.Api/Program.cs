@@ -7,6 +7,8 @@ using Serenity.Api.Middlewares;
 using Serenity.Api.Seeding;
 using Serenity.Application;
 using Serenity.Application.Common;
+using Serenity.Application.Features.Notificaciones;
+using Serenity.Application.Features.Reservas;
 using Serenity.Infrastructure;
 using Serenity.Infrastructure.Persistence;
 using Serilog;
@@ -31,6 +33,10 @@ try
     builder.Services.AddSingleton(builder.Configuration.GetSection("Airbnb").Get<Serenity.Application.Features.Anuncios.OpcionesAirbnb>()
                                   ?? new Serenity.Application.Features.Anuncios.OpcionesAirbnb());
     builder.Services.AddHostedService<Serenity.Api.Workers.AirbnbSyncWorker>();
+    builder.Services.AddSingleton(builder.Configuration.GetSection("Wompi").Get<OpcionesWompi>() ?? new OpcionesWompi());
+    builder.Services.AddSingleton(builder.Configuration.GetSection("Reservas").Get<OpcionesReservas>() ?? new OpcionesReservas());
+    builder.Services.AddSingleton(builder.Configuration.GetSection("Notificaciones").Get<OpcionesNotificaciones>() ?? new OpcionesNotificaciones());
+    builder.Services.AddHostedService<Serenity.Api.Workers.ReservasWorker>();
 
     // ─── JWT ──────────────────────────────────────────────────────────────────
     var jwt = builder.Configuration.GetSection("Jwt");
@@ -88,6 +94,16 @@ try
         o.AddPolicy("solicitudes", ctx => RateLimitPartition.GetFixedWindowLimiter(
             ctx.Connection.RemoteIpAddress?.ToString() ?? "desconocida",
             _ => new FixedWindowRateLimiterOptions { PermitLimit = 5, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+
+        // Crear reservas retiene fechas: pocas por minuto y por IP.
+        o.AddPolicy("reservas", ctx => RateLimitPartition.GetFixedWindowLimiter(
+            ctx.Connection.RemoteIpAddress?.ToString() ?? "desconocida",
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = 5, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+
+        // Cotizar y consultar el calendario: generoso, solo frena abusos.
+        o.AddPolicy("cotizar", ctx => RateLimitPartition.GetFixedWindowLimiter(
+            ctx.Connection.RemoteIpAddress?.ToString() ?? "desconocida",
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = 120, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
 
         // Freno al login por IP (además del bloqueo por cuenta).
         o.AddPolicy("login", ctx => RateLimitPartition.GetFixedWindowLimiter(

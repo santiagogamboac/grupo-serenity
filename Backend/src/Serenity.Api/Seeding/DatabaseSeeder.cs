@@ -26,6 +26,7 @@ public sealed class DatabaseSeeder(
     IResenaRepository resenas,
     IValorRepository valores,
     IEstadoAppRepository estado,
+    ISeccionRepository secciones,
     ILogger<DatabaseSeeder> logger)
 {
     private const string MarcaSeed = "seed_inicial_v1";
@@ -34,6 +35,47 @@ public sealed class DatabaseSeeder(
     {
         await SembrarAdminAsync(ct);
         await SembrarContenidoAsync(ct);
+        await CompletarCamposNuevosAsync(ct);
+    }
+
+    private string RutaSeed => configuracion["Seed:Ruta"] is { Length: > 0 } rutaCfg ? rutaCfg : Path.Combine(AppContext.BaseDirectory, "seed");
+
+    /// <summary>
+    /// Bases sembradas con una versión anterior: agrega a cada sección los campos de texto que el seed tiene y la base no
+    /// (p. ej. los textos de la reserva en línea). Nunca pisa un campo existente, aunque esté vacío.
+    /// </summary>
+    private async Task CompletarCamposNuevosAsync(CancellationToken ct)
+    {
+        var archivo = Path.Combine(RutaSeed, "contenido.json");
+        if (!File.Exists(archivo) || !await estado.ExisteAsync(MarcaSeed, ct))
+        {
+            return;
+        }
+
+        var semilla = JsonNode.Parse(await File.ReadAllTextAsync(archivo, ct))!["secciones"]!.AsObject();
+        foreach (var (clave, json) in await secciones.ObtenerTodasAsync(ct))
+        {
+            if (semilla[clave] is not JsonObject deSemilla || JsonNode.Parse(json) is not JsonObject actual)
+            {
+                continue;
+            }
+
+            var faltantes = deSemilla.Where(p => !p.Key.EndsWith("Archivo", StringComparison.Ordinal)
+                                             && p.Value is JsonValue v && v.TryGetValue<string>(out _)
+                                             && !actual.ContainsKey(p.Key)).ToList();
+            if (faltantes.Count == 0)
+            {
+                continue;
+            }
+
+            foreach (var (nombre, valor) in faltantes)
+            {
+                actual[nombre] = valor!.DeepClone();
+            }
+
+            await secciones.GuardarAsync(clave, actual.ToJsonString(), ct);
+            logger.LogInformation("Sección '{Clave}': se agregaron los campos nuevos {Campos}.", clave, string.Join(", ", faltantes.Select(f => f.Key)));
+        }
     }
 
     private async Task SembrarAdminAsync(CancellationToken ct)
@@ -65,7 +107,7 @@ public sealed class DatabaseSeeder(
             return;
         }
 
-        var ruta = configuracion["Seed:Ruta"] is { Length: > 0 } rutaCfg ? rutaCfg : Path.Combine(AppContext.BaseDirectory, "seed");
+        var ruta = RutaSeed;
         var archivoContenido = Path.Combine(ruta, "contenido.json");
 
         if (!File.Exists(archivoContenido))

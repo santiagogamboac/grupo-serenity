@@ -53,10 +53,11 @@ internal sealed class MediaRepository(DbConnectionFactory db) : IMediaRepository
     public async Task<bool> EstaEnUsoAsync(long id, CancellationToken ct)
     {
         using var conn = await db.OpenAsync(ct);
-        // Referencias: galerías de proyectos y cualquier campo "*MediaId" de primer nivel en las secciones.
+        // Referencias: galerías de proyectos, fotos de alojamientos y cualquier campo "*MediaId" de primer nivel en las secciones.
         return await conn.ExecuteScalarAsync<bool>(new CommandDefinition(
             """
             SELECT EXISTS (SELECT 1 FROM proyecto_imagenes WHERE media_id = @id)
+                OR EXISTS (SELECT 1 FROM alojamientos WHERE imagen_media_id = @id)
                 OR EXISTS (
                     SELECT 1
                       FROM secciones s, jsonb_each(s.contenido) e

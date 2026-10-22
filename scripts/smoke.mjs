@@ -84,6 +84,22 @@ async function postSolicitud(cuerpo, { reintentar = true } = {}) {
   throw new Error('Rate limit persistente')
 }
 
+// Acceso directo a la base (para preparar casos que el API no permite, como vencer una retención).
+// Usuario y base los toma del propio contenedor (POSTGRES_USER / POSTGRES_DB); el SQL viaja como argumento, sin comillas de shell.
+const { execFileSync } = await import('node:child_process')
+const psql = (sql) =>
+  execFileSync('docker', ['exec', 'serenity_postgres', 'sh', '-c', 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "$0"', sql], {
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
+    .toString()
+    .trim()
+let dockerOk = false
+try {
+  dockerOk = psql('SELECT 1') === '1'
+} catch {
+  /* sin docker: se omiten los casos que necesitan la base */
+}
+
 const manana = () => new Date(Date.now() + 2 * 86400_000).toISOString().slice(0, 10)
 const ayer = () => new Date(Date.now() - 2 * 86400_000).toISOString().slice(0, 10)
 
@@ -345,21 +361,7 @@ seccion('Anuncios de Airbnb y sincronización de calendario')
   ok('rango de más de 400 días → 400', (await api('GET', `${dispUrl}?desde=2027-01-01&hasta=2029-01-01`, { auth: false })).status === 400)
 
   // Camino feliz: hace falta un iCal servible y poder reapuntar el anuncio (el API solo acepta hosts de Airbnb).
-  const { execFileSync } = await import('node:child_process')
   const { createServer } = await import('node:http')
-  // Usuario y base los toma del propio contenedor (POSTGRES_USER / POSTGRES_DB); el SQL viaja como argumento, sin comillas de shell.
-  const psql = (sql) =>
-    execFileSync('docker', ['exec', 'serenity_postgres', 'sh', '-c', 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "$0"', sql], {
-      stdio: ['ignore', 'pipe', 'pipe'],
-    })
-      .toString()
-      .trim()
-  let dockerOk = false
-  try {
-    dockerOk = psql('SELECT 1') === '1'
-  } catch {
-    /* sin docker: se omite el camino feliz */
-  }
 
   if (!dockerOk) {
     console.log('  (sin acceso a docker/postgres: se omite la sincronización real)')
@@ -430,6 +432,230 @@ seccion('Anuncios de Airbnb y sincronización de calendario')
   ok('borrar anuncio → 204', (await api('DELETE', `/api/admin/anuncios/${sinIcal.json.id}`)).status === 204)
   ok('borrar anuncio otra vez → 404', (await api('DELETE', `/api/admin/anuncios/${sinIcal.json.id}`)).status === 404)
   ok('ya no aparece en la disponibilidad pública', !(await api('GET', dispUrl, { auth: false })).json.anuncios.some((a) => a.id === sinIcal.json.id))
+}
+
+// ─── 7c. Reserva directa: alojamientos, cotización, retención y pagos ───────
+seccion('Reserva directa (alojamientos, reservas y pagos con Wompi)')
+{
+  const { createHash } = await import('node:crypto')
+  const SECRETO_EVENTOS = env.WOMPI_SECRETO_EVENTOS
+
+  // Crear reservas tiene rate limit (5/min por IP): si se agota, espera a que abra la ventana.
+  const postReserva = async (cuerpo) => {
+    for (let i = 0; i < 3; i++) {
+      const r = await api('POST', '/api/public/reservas', { body: cuerpo, auth: false })
+      if (r.status !== 429) return r
+      console.log('    (rate limit de reservas, esperando 62 s...)')
+      await dormir(62_000)
+    }
+    throw new Error('Rate limit persistente')
+  }
+  const evento = (tx, { secreto = SECRETO_EVENTOS, tipo = 'transaction.updated' } = {}) => {
+    const timestamp = Math.floor(Date.now() / 1000)
+    const checksum = createHash('sha256').update(`${tx.id}${tx.status}${tx.amount_in_cents}${timestamp}${secreto}`).digest('hex')
+    return {
+      event: tipo,
+      data: { transaction: { currency: 'COP', payment_method_type: 'CARD', ...tx } },
+      environment: 'test',
+      signature: { properties: ['transaction.id', 'transaction.status', 'transaction.amount_in_cents'], checksum },
+      timestamp,
+      sent_at: new Date().toISOString(),
+    }
+  }
+  const enviarEvento = (tx, opciones) => api('POST', '/api/public/pagos/wompi/eventos', { body: evento(tx, opciones), auth: false })
+  const consultar = (r) => api('GET', `/api/public/reservas/${r.codigo}?t=${r.token}`, { auth: false })
+
+  const pr = (
+    await api('POST', '/api/admin/proyectos', {
+      body: {
+        nombre: 'Smoke Reservas', etiqueta: 'Test', icono: 'home', ubicacionEtiqueta: 'Lugar', titulo: 'T.', descripcion: 'D.',
+        metaLugar: '', metaEstancia: '', urlReserva: null, ctaTexto: 'Ver', publicado: true,
+      },
+    })
+  ).json
+  const baseAloj = `/api/admin/proyectos/${pr.id}/alojamientos`
+  const datosAloj = {
+    nombre: 'Cabaña smoke', descripcion: 'Con vista al lago.', imagenMediaId: mediaA.id, capacidad: 4, huespedesIncluidos: 2,
+    precioNoche: 300000, recargoHuespedExtra: 50000, tarifaAseo: 80000, estanciaMinima: 2, anuncioId: null, publicado: true,
+  }
+
+  ok('alojamientos sin token → 401', (await api('GET', baseAloj, { auth: false })).status === 401)
+  ok('incluidos > capacidad → 400', (await api('POST', baseAloj, { body: { ...datosAloj, huespedesIncluidos: 6 } })).status === 400)
+  ok('precio 0 → 400', (await api('POST', baseAloj, { body: { ...datosAloj, precioNoche: 0 } })).status === 400)
+  ok('imagen inexistente → 400', (await api('POST', baseAloj, { body: { ...datosAloj, imagenMediaId: 999999 } })).status === 400)
+  ok('anuncio inexistente o de otro proyecto → 400', (await api('POST', baseAloj, { body: { ...datosAloj, anuncioId: 999999 } })).status === 400)
+
+  const ca = await api('POST', baseAloj, { body: datosAloj })
+  ok('crear alojamiento → 201 con imagen y enlace iCal', ca.status === 201 && ca.json?.imagen?.url && /\/api\/public\/ical\/[0-9a-f]{48}\.ics$/.test(ca.json.urlIcal), ca.texto)
+  const aloj = ca.json
+  ok('la imagen del alojamiento queda en uso (borrar → 409)', (await api('DELETE', `/api/admin/media/${mediaA.id}`)).status === 409)
+
+  // Temporadas
+  const tarifas = `/api/admin/alojamientos/${aloj.id}/tarifas`
+  const t1 = await api('POST', tarifas, { body: { nombre: 'Temporada alta', desde: '2027-06-10', hasta: '2027-06-12', precioNoche: 450000 } })
+  ok('crear temporada → 201', t1.status === 201 && t1.json.precioNoche === 450000)
+  ok('temporada que se cruza → 409', (await api('POST', tarifas, { body: { nombre: 'Otra', desde: '2027-06-11', hasta: '2027-06-20', precioNoche: 1 } })).status === 409)
+  ok('temporada invertida → 400', (await api('POST', tarifas, { body: { nombre: 'Mal', desde: '2027-07-10', hasta: '2027-07-01', precioNoche: 1 } })).status === 400)
+
+  // Landing
+  const home = (await api('GET', '/api/public/home', { auth: false })).json
+  const PAGO = home.reservaDirecta?.pagoEnLinea === true
+  const pub = home.reservaDirecta?.alojamientos?.find((a) => a.id === aloj.id)
+  ok('la landing incluye el alojamiento publicado', !!pub && pub.proyectoId === pr.id && pub.precioNoche === 300000)
+  ok('la landing no expone el token iCal', !JSON.stringify(home.reservaDirecta).includes('token') && !JSON.stringify(home).includes(aloj.urlIcal.split('/').pop()))
+  console.log(`    (pago en línea ${PAGO ? 'ACTIVO' : 'apagado'} en este entorno)`)
+
+  // Cotización: 8→13 jun, 4 huéspedes. Noches 8, 9 (base), 10, 11 (temporada), 12 (base).
+  const cot = (b) => api('POST', '/api/public/reservas/cotizar', { body: { alojamientoId: aloj.id, ...b }, auth: false })
+  const c1 = await cot({ llegada: '2027-06-08', salida: '2027-06-13', huespedes: 4 })
+  ok('cotizar → 200, disponible', c1.status === 200 && c1.json.disponible === true, c1.texto)
+  ok('cotización: 5 noches, temporada y recargo', c1.json?.cotizacion?.noches === 5 && c1.json.cotizacion.subtotal === 3 * 300000 + 2 * 450000 + 2 * 50000 * 5 && c1.json.cotizacion.total === c1.json.cotizacion.subtotal + 80000, JSON.stringify(c1.json?.cotizacion))
+  ok('cotización: tramos base / temporada / base', c1.json?.cotizacion?.tramos?.map((t) => t.noches).join(',') === '2,2,1')
+  ok('menos de la estancia mínima → 400', (await cot({ llegada: '2027-06-08', salida: '2027-06-09', huespedes: 2 })).status === 400)
+  ok('más huéspedes que la capacidad → 400', (await cot({ llegada: '2027-06-08', salida: '2027-06-10', huespedes: 9 })).status === 400)
+  ok('llegada en el pasado → 400', (await cot({ llegada: ayer(), salida: manana(), huespedes: 2 })).status === 400)
+  ok('alojamiento inexistente → 404', (await api('POST', '/api/public/reservas/cotizar', { body: { alojamientoId: 999999, llegada: '2027-06-08', salida: '2027-06-10', huespedes: 2 }, auth: false })).status === 404)
+
+  // Crear
+  const reservar = (b) => postReserva({ alojamientoId: aloj.id, huespedes: 2, nombre: 'Huésped Smoke', correo: 'huesped@example.com', telefono: '+57 300 123 4567', ...b })
+  ok('correo inválido → 400', (await reservar({ llegada: '2027-06-08', salida: '2027-06-13', correo: 'no-es-correo' })).status === 400)
+  ok('honeypot → 202 sin crear', (await reservar({ llegada: '2027-06-08', salida: '2027-06-13', sitioWeb: 'http://spam' })).status === 202)
+  const r1 = await reservar({ llegada: '2027-06-08', salida: '2027-06-13', huespedes: 4, nota: 'Llegamos tarde.' })
+  ok('crear reserva → 201 con código y token', r1.status === 201 && /^SER-[2-9A-HJKMNP-Z]{6}$/.test(r1.json?.codigo) && r1.json.token?.length === 32, r1.texto)
+  ok('el total cobrado es el de la cotización', r1.json?.total === c1.json.cotizacion.total)
+  if (PAGO) {
+    const q = new URL(r1.json.checkoutUrl).searchParams
+    ok('checkout de Wompi: centavos, referencia -1 y regreso a la reserva', q.get('amount-in-cents') === String(r1.json.total * 100) && q.get('reference') === `${r1.json.codigo}-1` && q.get('redirect-url').includes(`/reserva/${r1.json.codigo}?t=${r1.json.token}`) && !!q.get('signature:integrity'))
+  } else {
+    ok('sin pago en línea no hay checkout', r1.json?.checkoutUrl === null)
+  }
+  ok('mismas fechas otra vez → 409', (await reservar({ llegada: '2027-06-08', salida: '2027-06-13' })).status === 409)
+  ok('fechas que se cruzan → 409', (await reservar({ llegada: '2027-06-12', salida: '2027-06-15' })).status === 409)
+  ok('llegar el día de salida de otra reserva sí se puede (cotizar)', (await cot({ llegada: '2027-06-13', salida: '2027-06-15', huespedes: 2 })).json?.disponible === true)
+  ok('cotizar fechas retenidas → disponible: false', (await cot({ llegada: '2027-06-09', salida: '2027-06-11', huespedes: 2 })).json?.disponible === false)
+
+  const disp = await api('GET', `/api/public/alojamientos/${aloj.id}/disponibilidad?desde=2027-06-01&hasta=2027-07-01`, { auth: false })
+  ok('disponibilidad pública muestra la retención', disp.status === 200 && JSON.stringify(disp.json.ocupado) === JSON.stringify([{ desde: '2027-06-08', hasta: '2027-06-13' }]), disp.texto)
+
+  // Consulta pública
+  const g1 = await consultar(r1.json)
+  ok('consultar con token → 200 pendiente de pago', g1.status === 200 && g1.json.estado === 'pendiente_pago' && g1.json.puedePagar === PAGO && !!g1.json.expiraEn)
+  ok('consultar no expone correo ni teléfono', !g1.texto.includes('huesped@example.com') && !g1.texto.includes('300 123'))
+  ok('token incorrecto → 404', (await api('GET', `/api/public/reservas/${r1.json.codigo}?t=${'0'.repeat(32)}`, { auth: false })).status === 404)
+  ok('sin token → 404', (await api('GET', `/api/public/reservas/${r1.json.codigo}`, { auth: false })).status === 404)
+
+  // Feed .ics de salida
+  const rutaIcal = new URL(aloj.urlIcal).pathname
+  const ical = await api('GET', rutaIcal, { auth: false, raw: true })
+  const icsTexto = await ical.text()
+  ok('feed .ics → 200 text/calendar con la reserva', ical.status === 200 && (ical.headers.get('content-type') ?? '').startsWith('text/calendar') && icsTexto.includes('DTSTART;VALUE=DATE:20270608') && icsTexto.includes('DTEND;VALUE=DATE:20270613'))
+  ok('feed .ics sin datos del huésped', !icsTexto.includes('Huésped Smoke') && !icsTexto.includes('example.com'))
+  ok('token de feed inválido → 404', (await api('GET', `/api/public/ical/${'a'.repeat(48)}.ics`, { auth: false })).status === 404)
+
+  const reservasCreadas = [r1.json]
+
+  if (PAGO && SECRETO_EVENTOS) {
+    const total1 = r1.json.total * 100
+    ok('evento con firma inválida → 401', (await enviarEvento({ id: 'tx-falsa', status: 'APPROVED', amount_in_cents: total1, reference: `${r1.json.codigo}-1` }, { secreto: 'otro' })).status === 401)
+    ok('la reserva sigue pendiente tras el evento falso', (await consultar(r1.json)).json.estado === 'pendiente_pago')
+
+    const rechazo = await enviarEvento({ id: 'tx-smoke-1', status: 'DECLINED', amount_in_cents: total1, reference: `${r1.json.codigo}-1` })
+    const g2 = (await consultar(r1.json)).json
+    ok('pago rechazado → 200; la reserva sigue retenida y se puede reintentar', rechazo.status === 200 && g2.estado === 'pendiente_pago' && g2.pagoEstado === 'DECLINED' && g2.puedePagar === true)
+    const reintento = await api('POST', `/api/public/reservas/${r1.json.codigo}/pago?t=${r1.json.token}`, { auth: false })
+    ok('reintentar pago → nueva referencia -2', reintento.status === 200 && new URL(reintento.json.checkoutUrl).searchParams.get('reference') === `${r1.json.codigo}-2`)
+
+    const aprob = await enviarEvento({ id: 'tx-smoke-2', status: 'APPROVED', amount_in_cents: total1, reference: `${r1.json.codigo}-2`, payment_method_type: 'NEQUI' })
+    const g3 = (await consultar(r1.json)).json
+    ok('pago aprobado → reserva confirmada', aprob.status === 200 && g3.estado === 'confirmada' && g3.pagoEstado === 'APPROVED' && g3.expiraEn === null && g3.puedePagar === false, JSON.stringify(g3))
+    ok('el mismo evento otra vez es idempotente', (await enviarEvento({ id: 'tx-smoke-2', status: 'APPROVED', amount_in_cents: total1, reference: `${r1.json.codigo}-2` })).status === 200 && (await consultar(r1.json)).json.estado === 'confirmada')
+    ok('ya confirmada: pedir otro pago → 409', (await api('POST', `/api/public/reservas/${r1.json.codigo}/pago?t=${r1.json.token}`, { auth: false })).status === 409)
+    ok('verificar con una transacción desconocida → 200 sin cambios', (await api('POST', `/api/public/reservas/${r1.json.codigo}/verificar?t=${r1.json.token}`, { body: { transaccionId: 'no-existe-123' }, auth: false })).json?.estado === 'confirmada')
+    ok('evento con referencia desconocida → 200 (se ignora)', (await enviarEvento({ id: 'tx-x', status: 'APPROVED', amount_in_cents: 100, reference: 'SER-ZZZZZZ-1' })).status === 200)
+
+    // Monto distinto → revisión (y las fechas se liberan para no bloquear el calendario por un error).
+    const r2 = (await reservar({ llegada: '2027-06-20', salida: '2027-06-23' })).json
+    reservasCreadas.push(r2)
+    await enviarEvento({ id: 'tx-smoke-3', status: 'APPROVED', amount_in_cents: 100, reference: `${r2.codigo}-1` })
+    ok('pago con monto distinto → revisión', (await consultar(r2)).json.estado === 'revision')
+
+    if (dockerOk) {
+      // Pago que llega después de vencer la retención, con las fechas libres → se confirma igual.
+      const r3 = (await reservar({ llegada: '2027-06-25', salida: '2027-06-28' })).json
+      reservasCreadas.push(r3)
+      psql(`UPDATE reservas SET expira_en = now() - interval '1 minute' WHERE codigo = '${r3.codigo}'`)
+      ok('retención vencida → expirada al consultar', (await consultar(r3)).json.estado === 'expirada')
+      await enviarEvento({ id: 'tx-smoke-4', status: 'APPROVED', amount_in_cents: r3.total * 100, reference: `${r3.codigo}-1` })
+      ok('pago tardío con fechas libres → confirmada', (await consultar(r3)).json.estado === 'confirmada')
+
+      // Pago tardío con las fechas ya tomadas por otra reserva → revisión, sin doble reserva.
+      const r5 = (await reservar({ llegada: '2027-07-01', salida: '2027-07-04' })).json
+      reservasCreadas.push(r5)
+      psql(`UPDATE reservas SET expira_en = now() - interval '1 minute' WHERE codigo = '${r5.codigo}'`)
+      const r6 = await reservar({ llegada: '2027-07-01', salida: '2027-07-04' })
+      ok('vencida la retención, otro huésped puede tomar las fechas', r6.status === 201)
+      reservasCreadas.push(r6.json)
+      await enviarEvento({ id: 'tx-smoke-5', status: 'APPROVED', amount_in_cents: r5.total * 100, reference: `${r5.codigo}-1` })
+      ok('pago tardío con fechas tomadas → revisión (no hay doble reserva)', (await consultar(r5)).json.estado === 'revision' && (await consultar(r6.json)).json.estado === 'pendiente_pago')
+    }
+  } else {
+    console.log('  (pago en línea apagado o sin WOMPI_SECRETO_EVENTOS: se omiten los eventos de Wompi)')
+  }
+
+  // Admin
+  const lista = await api('GET', `/api/admin/reservas?q=${r1.json.codigo}`)
+  ok('admin: buscar por código', lista.status === 200 && lista.json.items.length === 1 && lista.json.items[0].correo === 'huesped@example.com')
+  const det = lista.json.items[0]
+  ok('admin: detalle con enlace para el huésped y nota', det.enlaceHuesped.endsWith(`/reserva/${r1.json.codigo}?t=${r1.json.token}`) && det.notaHuesped === 'Llegamos tarde.')
+  ok('admin: estado inválido en el filtro → 400', (await api('GET', '/api/admin/reservas?estado=raro')).status === 400)
+  ok('admin: guardar notas', (await api('PUT', `/api/admin/reservas/${det.id}/notas`, { body: { notas: 'Pidió cuna.' } })).json?.notas === 'Pidió cuna.')
+  if (!PAGO) {
+    const conf = await api('POST', `/api/admin/reservas/${det.id}/confirmar`)
+    ok('admin: confirmar a mano (pago por otro medio)', conf.status === 200 && conf.json.estado === 'confirmada' && conf.json.pagoProveedor === 'manual')
+  }
+  ok('admin: confirmar una confirmada → 409', (await api('POST', `/api/admin/reservas/${det.id}/confirmar`)).status === 409)
+  ok('admin: cancelar sin motivo → 400', (await api('POST', `/api/admin/reservas/${det.id}/cancelar`, { body: { motivo: '' } })).status === 400)
+  const canc = await api('POST', `/api/admin/reservas/${det.id}/cancelar`, { body: { motivo: 'El huésped cambió de planes.', avisarHuesped: true } })
+  ok('admin: cancelar → cancelada y libera las fechas', canc.status === 200 && canc.json.estado === 'cancelada' && (await cot({ llegada: '2027-06-08', salida: '2027-06-13', huespedes: 2 })).json.disponible === true)
+  ok('admin: cancelar otra vez → 409', (await api('POST', `/api/admin/reservas/${det.id}/cancelar`, { body: { motivo: 'x' } })).status === 409)
+  ok('consulta pública muestra el motivo de la cancelación', (await consultar(r1.json)).json.motivoEstado === 'El huésped cambió de planes.')
+
+  // Bloqueos manuales
+  const bl = await api('POST', `/api/admin/alojamientos/${aloj.id}/bloqueos`, { body: { desde: '2027-08-01', hasta: '2027-08-05', motivo: 'Mantenimiento' } })
+  ok('bloqueo manual → 201 y ocupa el calendario', bl.status === 201 && (await cot({ llegada: '2027-08-03', salida: '2027-08-06', huespedes: 2 })).json.disponible === false)
+  ok('bloqueo manual aparece en el feed .ics', (await (await api('GET', rutaIcal, { auth: false, raw: true })).text()).includes('DTSTART;VALUE=DATE:20270801'))
+  ok('borrar bloqueo → 204', (await api('DELETE', `/api/admin/bloqueos/${bl.json.id}`)).status === 204)
+
+  const dash = (await api('GET', '/api/admin/dashboard')).json
+  ok('dashboard trae contadores de reservas', typeof dash.reservasPendientesPago === 'number' && typeof dash.reservasEnRevision === 'number' && typeof dash.reservasProximas === 'number')
+  ok('catálogos traen los estados de reserva', (await api('GET', '/api/admin/catalogos')).json?.estadosReserva?.includes('revision'))
+
+  // Correo (si Mailpit corre en el puerto por defecto)
+  const mailpit = env.MAILPIT_URL ?? 'http://localhost:8027'
+  const buzon = await fetch(`${mailpit}/api/v1/search?query=${encodeURIComponent(r1.json.codigo)}`).then((r) => (r.ok ? r.json() : null)).catch(() => null)
+  if (buzon) {
+    const asuntos = buzon.messages.map((m) => m.Subject)
+    ok('correo al equipo por la reserva creada', asuntos.some((a) => a.includes(`Reserva ${r1.json.codigo} creada`)), asuntos.join(' | '))
+    ok('correo al huésped por la cancelación', asuntos.some((a) => a.includes(`Reserva ${r1.json.codigo} cancelada`)))
+    if (PAGO && SECRETO_EVENTOS) ok('correo de confirmación al huésped', asuntos.some((a) => a.includes(`Reserva confirmada ${r1.json.codigo}`)))
+  } else {
+    console.log('  (Mailpit no disponible: se omiten las comprobaciones de correo)')
+  }
+
+  // Integridad: con reservas no se borra el alojamiento ni el proyecto.
+  ok('borrar alojamiento con reservas → 409', (await api('DELETE', `/api/admin/alojamientos/${aloj.id}`)).status === 409)
+  ok('borrar proyecto con reservas → 409', (await api('DELETE', `/api/admin/proyectos/${pr.id}`)).status === 409)
+  const despub = await api('PUT', `/api/admin/alojamientos/${aloj.id}`, { body: { ...datosAloj, imagenMediaId: null, publicado: false } })
+  ok('despublicar alojamiento → ya no se cotiza (404)', despub.status === 200 && (await cot({ llegada: '2027-09-01', salida: '2027-09-03', huespedes: 2 })).status === 404)
+
+  // Limpieza: las reservas solo se pueden borrar en la base.
+  if (dockerOk) {
+    psql(`DELETE FROM reservas WHERE alojamiento_id = ${aloj.id}`)
+    ok('borrar alojamiento sin reservas → 204', (await api('DELETE', `/api/admin/alojamientos/${aloj.id}`)).status === 204)
+    ok('borrar proyecto de prueba → 204', (await api('DELETE', `/api/admin/proyectos/${pr.id}`)).status === 204)
+  } else {
+    console.log(`  (sin docker: quedan datos de prueba en el proyecto ${pr.id})`)
+  }
 }
 
 // ─── 8. Limpieza y cambio de contraseña ─────────────────────────────────────

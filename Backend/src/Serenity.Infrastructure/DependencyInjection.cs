@@ -37,6 +37,11 @@ public static class DependencyInjection
         services.AddScoped<IEstadoAppRepository, EstadoAppRepository>();
         services.AddScoped<IAnuncioRepository, AnuncioRepository>();
         services.AddSingleton<IIcalClient, HttpIcalClient>();
+        services.AddScoped<IAlojamientoRepository, AlojamientoRepository>();
+        services.AddScoped<IReservaRepository, ReservaRepository>();
+        services.AddSingleton<IWompiClient, HttpWompiClient>();
+        services.AddSingleton(configuration.GetSection("Smtp").Get<OpcionesSmtp>() ?? new OpcionesSmtp());
+        services.AddSingleton<IEnviadorCorreo, SmtpEnviadorCorreo>();
 
         services.AddSingleton<IPasswordHasher, BcryptPasswordHasher>();
         services.AddSingleton<IJwtTokenService, JwtTokenService>();

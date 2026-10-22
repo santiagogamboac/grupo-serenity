@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using FluentValidation;
 using MediatR;
 using Serenity.Application.Common;
+using Serenity.Application.Features.Notificaciones;
 using Serenity.Application.Interfaces;
 using Serenity.Application.Models;
 using Serenity.Domain;
@@ -74,7 +75,7 @@ public sealed partial class CrearSolicitudCommandValidator : AbstractValidator<C
         => DateOnly.FromDateTime(reloj.GetUtcNow().UtcDateTime.AddHours(-5));
 }
 
-public sealed class CrearSolicitudCommandHandler(ISolicitudRepository solicitudes, IProyectoRepository proyectos)
+public sealed class CrearSolicitudCommandHandler(ISolicitudRepository solicitudes, IProyectoRepository proyectos, Notificador notificador)
     : IRequestHandler<CrearSolicitudCommand, Result<SolicitudCreadaDto?>>
 {
     public async Task<Result<SolicitudCreadaDto?>> Handle(CrearSolicitudCommand request, CancellationToken ct)
@@ -109,6 +110,7 @@ public sealed class CrearSolicitudCommandHandler(ISolicitudRepository solicitude
             DestinoTexto = destino
         }, ct);
 
+        await notificador.NuevaSolicitudAsync(id, d.Nombre.Trim(), d.Contacto.Trim(), d.FechaLlegada, d.Huespedes, destino, ct);
         return Result.Success<SolicitudCreadaDto?>(new SolicitudCreadaDto(id));
     }
 }
