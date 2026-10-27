@@ -18,7 +18,9 @@ export function useAparecer<T extends HTMLElement>(listo: boolean) {
     const obs = new IntersectionObserver(
       entradas => {
         for (const e of entradas) {
-          if (e.isIntersecting) {
+          // Con un scroll rápido un elemento puede saltar de abajo a arriba sin llegar a cruzar el viewport:
+          // si ya quedó por encima, también se muestra (si no, quedaría invisible para siempre).
+          if (e.isIntersecting || e.boundingClientRect.bottom < 0) {
             e.target.classList.add("is-visible");
             obs.unobserve(e.target);
           }

@@ -54,6 +54,7 @@
   --ring: #1d6f93;
   --radius: .6rem;
   --ease-out: cubic-bezier(.23, 1, .32, 1);
+  --ease-suave: cubic-bezier(.22, .9, .3, 1);
 }
 
 /* Resets globales dentro de @layer base: así los utilities de Tailwind (panel admin / shadcn) les ganan,
@@ -111,13 +112,13 @@
 .site-shell--glass section[id] { scroll-margin-top: 88px; }
 
 /* Fondo difuso y marco */
-.site-backdrop { position: fixed; z-index: -1; inset: 0; overflow: hidden; background: radial-gradient(ellipse at 20% 10%, var(--mint), transparent 60%), var(--fondo); pointer-events: none; }
+.site-backdrop { position: fixed; z-index: -1; inset: 0; overflow: hidden; contain: strict; transform: translateZ(0); background: radial-gradient(ellipse at 20% 10%, var(--mint), transparent 60%), var(--fondo); pointer-events: none; }
 .site-backdrop img { width: 100%; height: 100%; display: block; object-fit: cover; filter: blur(30px) saturate(1.1) brightness(1.05); transform: scale(1.15); }
 .site-backdrop:after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(251, 246, 238, .3), rgba(251, 246, 238, .6)); }
 .site-frame { position: relative; width: min(1440px, calc(100% - 40px)); margin: 0 auto; padding: 12px; border: 1px solid var(--glass-line); border-radius: 44px; background: linear-gradient(180deg, rgba(251, 246, 238, .62) 0%, rgba(251, 246, 238, .8) 22%, rgba(251, 246, 238, .84) 100%); box-shadow: 0 60px 140px -30px rgba(29, 58, 69, .35), inset 0 1px 0 #fff; overflow: clip; }
 
 /* Luces difusas que dan cuerpo al vidrio */
-.glow-orb { position: absolute; z-index: 0; width: 540px; height: 540px; border-radius: 50%; filter: blur(100px); opacity: .55; pointer-events: none; animation: flotar 22s ease-in-out infinite alternate; }
+.glow-orb { position: absolute; z-index: 0; width: 540px; height: 540px; border-radius: 50%; filter: blur(100px); opacity: .55; pointer-events: none; will-change: transform; animation: flotar 22s ease-in-out infinite alternate; }
 .glow-orb--sun { top: 4%; right: -12%; background: radial-gradient(circle, rgba(240, 185, 90, .55), transparent 70%); }
 .glow-orb--teal { top: 18%; left: -14%; background: radial-gradient(circle, rgba(63, 160, 170, .6), transparent 70%); }
 .glow-orb--warm { bottom: 0; right: -10%; background: radial-gradient(circle, rgba(196, 85, 47, .5), transparent 70%); }
@@ -180,6 +181,13 @@
 /* Portada */
 .hero { position: relative; min-height: clamp(640px, calc(100vh - 80px), 920px); min-height: clamp(640px, calc(100svh - 80px), 920px); display: flex; flex-direction: column; overflow: hidden; border-radius: 32px; background: var(--fondo-suave); color: #fff; }
 .hero-media { position: absolute; inset: 0; will-change: transform; }
+/* Parallax de la portada en el hilo del compositor (sincronizado con el scroll, sin JS). Sin soporte, lo hace useParallax. */
+@supports (animation-timeline: scroll()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .hero-media { animation: parallaxPortada linear both; animation-timeline: scroll(root block); animation-range: 0px 120vh; }
+  }
+}
+@keyframes parallaxPortada { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(0, 26.4vh, 0); } }
 .hero-image { width: 100%; height: 100%; display: block; object-fit: cover; animation: heroZoom 2.8s var(--ease-out) backwards; }
 .hero-vignette { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(9, 30, 38, .5) 0%, rgba(9, 30, 38, .16) 30%, rgba(9, 30, 38, .06) 52%, rgba(9, 30, 38, .62) 100%), radial-gradient(ellipse at 12% 92%, rgba(9, 30, 38, .5), transparent 55%); }
 .hero-inner { position: relative; z-index: 2; flex: 1; display: flex; flex-direction: column; justify-content: space-between; gap: 32px; padding: 116px 40px 36px; }
@@ -208,7 +216,7 @@ h1 em, h2 em, h3 em, .footer-slogan em { font-style: italic; font-weight: 400; }
 .glass-stat__iconos svg { box-sizing: content-box; padding: 8px; border-radius: 50%; background: var(--mint); color: var(--teal); }
 .glass-stat b { display: flex; align-items: flex-start; gap: 6px; font-size: 13.5px; font-weight: 700; line-height: 1.4; }
 .glass-stat b svg { flex: 0 0 auto; margin-top: 2px; color: var(--warm); }
-.scroll-bird { position: fixed; z-index: 12; top: 24%; right: clamp(24px, 6vw, 110px); width: 76px; height: 76px; pointer-events: none; transition: transform .2s ease-out; }
+.scroll-bird { position: fixed; z-index: 12; top: 24%; right: clamp(24px, 6vw, 110px); width: 76px; height: 76px; pointer-events: none; will-change: transform; }
 .scroll-bird img { position: relative; z-index: 1; width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 8px 9px rgba(8, 50, 52, .22)); }
 .bird-glow { position: absolute; width: 42px; height: 42px; top: 22px; left: 18px; background: rgba(161, 219, 196, .38); filter: blur(17px); border-radius: 50%; }
 
@@ -370,12 +378,20 @@ h1 em, h2 em, h3 em, .footer-slogan em { font-style: italic; font-weight: 400; }
 .footer-bottom a { display: inline-flex; align-items: center; gap: 4px; color: var(--acento); font-weight: 700; }
 
 /* Aparición al hacer scroll (useAparecer): solo opacity/transform */
-[data-aparecer]:not(.cascada) { opacity: 0; transform: translate3d(0, 32px, 0); transition: opacity 1s var(--ease-out), transform 1s var(--ease-out); }
+[data-aparecer]:not(.cascada) { opacity: 0; transform: translate3d(0, 28px, 0); transition: opacity 1.1s var(--ease-suave), transform 1.3s var(--ease-suave); }
 [data-aparecer].is-visible:not(.cascada) { opacity: 1; transform: none; }
 .cascada:not(.is-visible) > * { opacity: 0; }
-.cascada.is-visible > * { animation: subir .9s var(--ease-out) backwards; animation-delay: calc(var(--i, 0) * 90ms); }
+.cascada.is-visible > * { animation: subir 1.1s var(--ease-suave) backwards; animation-delay: calc(var(--i, 0) * 80ms); }
 .cascada > :nth-child(2) { --i: 1; } .cascada > :nth-child(3) { --i: 2; } .cascada > :nth-child(4) { --i: 3; }
 .cascada > :nth-child(5) { --i: 4; } .cascada > :nth-child(6) { --i: 5; } .cascada > :nth-child(7) { --i: 6; } .cascada > :nth-child(8) { --i: 7; }
+
+/* Rendimiento al hacer scroll: el vidrio sobre el marco claro no necesita backdrop-filter (detrás solo hay el marco
+   casi opaco y luces ya difusas), y recalcularlo en cada cuadro es lo que más cuesta. Se conserva sobre fotos y en el
+   header fijo, donde sí se nota. */
+.site-frame :is(.glass-card:not(.intro-quote), .value-card, .destination-feature, .booking-panel, .aloj-tarjeta, .detalle-datos li, .pill-cta--glass),
+.site-frame .page-width .icon-glass,
+.site-header--scrolled .primary-nav,
+.site-header--scrolled .icon-glass { -webkit-backdrop-filter: none; backdrop-filter: none; }
 
 @keyframes slowZoom { from { transform: scale(1.04); } to { transform: scale(1); } }
 @keyframes heroZoom { from { transform: scale(1.14); filter: brightness(.7) blur(6px); } to { transform: scale(1); filter: none; } }

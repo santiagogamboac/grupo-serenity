@@ -10,14 +10,19 @@ function useParallax<T extends HTMLElement>() {
   const ref = useRef<T>(null);
   useEffect(() => {
     const el = ref.current;
-    if (!el || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    // Con scroll-driven animations el CSS lo hace en el compositor (index.css, .hero-media); aquí solo el respaldo.
+    if (!el || window.matchMedia("(prefers-reduced-motion: reduce)").matches || CSS.supports("animation-timeline: scroll()")) return;
     let raf = 0;
+    let previo = "";
+    const pintar = () => {
+      raf = 0;
+      // Fuera de la portada el valor queda fijo: no se reescribe el estilo en cada cuadro.
+      const y = Math.min(Math.max(window.scrollY, 0), window.innerHeight * 1.2);
+      const valor = `translate3d(0, ${(y * 0.22).toFixed(2)}px, 0)`;
+      if (valor !== previo) el.style.transform = previo = valor;
+    };
     const onScroll = () => {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => {
-        const y = Math.min(window.scrollY, window.innerHeight * 1.2);
-        el.style.transform = `translate3d(0, ${(y * 0.22).toFixed(1)}px, 0)`;
-      });
+      if (!raf) raf = requestAnimationFrame(pintar);
     };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });

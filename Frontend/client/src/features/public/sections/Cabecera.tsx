@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Instagram, Menu, MessageCircle, X } from "lucide-react";
 import { RichTitle } from "@/components/RichTitle";
 import type { AnuncioContenido, MarcaContenido, NavegacionContenido } from "@/lib/types";
 import { TEXTOS } from "../textos";
 import { useSeccionActiva } from "../useAparecer";
+import { progresoScroll } from "../useScrollEffects";
 
 export function BarraAnuncio({ anuncio }: { anuncio: AnuncioContenido }) {
   if (!anuncio.activo || !anuncio.texto) return null;
@@ -109,17 +110,42 @@ export function Encabezado({
   );
 }
 
-export function ColibriScroll({ marca, progress }: { marca: MarcaContenido; progress: number }) {
-  const estilo = useMemo(
-    () => ({
-      transform: `translate3d(${Math.sin(progress * Math.PI * 4) * 12}px, ${Math.cos(progress * Math.PI * 5) * 10}px, 0) rotate(${Math.sin(progress * Math.PI * 3) * 8}deg)`,
-    }),
-    [progress]
-  );
+/** Colibrí que acompaña el scroll. Sigue el progreso con una interpolación suave (rAF), fuera del render de React. */
+export function ColibriScroll({ marca }: { marca: MarcaContenido }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const hayPajaro = Boolean(marca.pajaro);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const suavizado = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 1 : 0.1;
+    let raf = 0;
+    let objetivo = progresoScroll();
+    let actual = objetivo;
+    // El progreso se lee dentro del cuadro (rAF), no en el evento de scroll: así no fuerza un layout extra.
+    const pintar = () => {
+      objetivo = progresoScroll();
+      actual += (objetivo - actual) * suavizado;
+      if (Math.abs(objetivo - actual) < 0.0004) actual = objetivo;
+      el.style.transform = `translate3d(${(Math.sin(actual * Math.PI * 4) * 12).toFixed(2)}px, ${(Math.cos(actual * Math.PI * 5) * 10).toFixed(2)}px, 0) rotate(${(Math.sin(actual * Math.PI * 3) * 8).toFixed(2)}deg)`;
+      raf = actual === objetivo ? 0 : requestAnimationFrame(pintar);
+    };
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(pintar);
+    };
+    pintar();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, [hayPajaro]);
 
   if (!marca.pajaro) return null;
   return (
-    <div className="scroll-bird" style={estilo} aria-hidden="true">
+    <div className="scroll-bird" ref={ref} aria-hidden="true">
       <span className="bird-glow" />
       <img src={marca.pajaro.url} alt="" />
     </div>

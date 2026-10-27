@@ -16,7 +16,7 @@ import { Valores } from "@/features/public/sections/Valores";
 /** Landing pública: todo el contenido llega de GET /api/public/home. */
 export default function Home() {
   const { data, isPending, isError, refetch, isFetching } = useHome();
-  const { scrolled, progress } = useScrollEffects();
+  const { scrolled } = useScrollEffects();
   const raiz = useAparecer<HTMLElement>(Boolean(data));
   const [pedido, setPedido] = useState<PedidoDestino>(null);
   const reservables = useMemo(() => new Set(data?.reservaDirecta.alojamientos.map(a => a.proyectoId)), [data]);
@@ -56,7 +56,7 @@ export default function Home() {
       <div className="site-backdrop" aria-hidden="true">
         {fondo && <img src={fondo} alt="" />}
       </div>
-      <ColibriScroll marca={c.marca} progress={progress} />
+      <ColibriScroll marca={c.marca} />
       <div className="site-frame">
         <BarraAnuncio anuncio={c.anuncio} />
         <Portada
