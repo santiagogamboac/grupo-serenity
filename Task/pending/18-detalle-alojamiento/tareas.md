@@ -32,7 +32,7 @@ el árbol de trabajo es compartido.
       prop `alojamientoFijoId` en `ReservaEnLinea.tsx`, `ImagenAlojamiento`/`imagenes` en `lib/types.ts`, bloque
       `TEXTOS.alojamiento` en `textos.ts`, ruta en `App.tsx`, montar `TarjetasAlojamientos` en `Destinos.tsx`;
       y, si lo aprueba, `imagenes` en `admin/tipos.ts` + montar la galería en `AlojamientosProyecto.tsx`.
-- [ ] Prueba en navegador: 1440/820/390, sin scroll horizontal, flujo de reserva sin pago en línea (local).
+- [x] 2026-10-26 Prueba en navegador del detalle (ver T5). Pendiente solo el flujo completo con Wompi sandbox → `19-*`.
 
 ## T4. Entradas y admin (D4)
 - [x] 2026-10-26 Tarjetas en Destinos.
@@ -44,9 +44,9 @@ el árbol de trabajo es compartido.
 - [x] 2026-10-26 Navegador: `/alojamientos/5` a 1440 y 390 px, sin scroll horizontal ni errores de consola (se corrigió un
       useEffect que devolvía valor y el salto de línea de "Volver" en móvil).
 - [ ] `node scripts/smoke.mjs` contra el stack + bloque de galería en el smoke; reservar de punta a punta con Wompi sandbox.
-- [ ] Commit propio (después del de serenity-24) y `git push origin main`.
-- [ ] Mover la carpeta a `Task/done/` cuando T1–T5 estén en `[x]`. Producción (Wompi, dominio, Airbnb) queda en
-      `analisis-y-plan.md` §5 E–F: requiere al dueño.
+- [x] 2026-10-26 Commits `45b11d0` y `4c0e87d` subidos a origin/main.
+- [ ] Mover la carpeta a `Task/done/` cuando T1–T5 estén en `[x]`. Producción (Wompi, dominio, Airbnb) quedó en
+      `Task/pending/19-configuracion-wompi-airbnb.md` (instructivo paso a paso).
 
 ## Bitácora
 - 2026-10-26: commit + push a origin/main. Para el despliegue: `A_EJECUTAR_PARA_SEBASTIAN.md` (prompt con manejo de
