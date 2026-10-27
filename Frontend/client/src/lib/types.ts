@@ -103,6 +103,11 @@ export interface ReservasContenido {
   aviso: string;
   exitoTitulo: string;
   exitoDescripcion: string;
+  reservaTitulo: string;
+  reservaSubtitulo: string;
+  reservaBotonTexto: string;
+  condiciones: string;
+  reservaSinPagoTexto: string;
 }
 
 export interface FooterContenido {
@@ -113,8 +118,6 @@ export interface FooterContenido {
   youtubeUrl: string;
   copyright: string;
   frase: string;
-  sitioActualTexto: string;
-  sitioActualUrl: string;
 }
 
 export interface Contenido {
@@ -175,6 +178,7 @@ export interface HomeData {
   proyectos: ProyectoPublico[];
   valores: ValorPublico[];
   resenas: ResenaPublica[];
+  reservaDirecta: ReservaDirecta;
 }
 
 export interface SolicitudInput {
@@ -185,4 +189,115 @@ export interface SolicitudInput {
   proyectoId: number | null;
   destinoTexto: string | null;
   sitioWeb: string;
+}
+
+// ─── Reserva directa (alojamientos con precio + pago con Wompi) ───────────────
+// Fechas de calendario como "yyyy-MM-dd".
+
+export interface AlojamientoPublico {
+  id: number;
+  proyectoId: number;
+  nombre: string;
+  descripcion: string;
+  imagen: MediaDto | null;
+  capacidad: number;
+  huespedesIncluidos: number;
+  precioNoche: number;
+  recargoHuespedExtra: number;
+  tarifaAseo: number;
+  estanciaMinima: number;
+}
+
+export interface ReservaDirecta {
+  pagoEnLinea: boolean;
+  alojamientos: AlojamientoPublico[];
+}
+
+/** Noches ocupadas: [desde, hasta). */
+export interface RangoOcupado {
+  desde: string;
+  hasta: string;
+}
+
+export interface DisponibilidadAlojamiento {
+  alojamientoId: number;
+  desde: string;
+  hasta: string;
+  ocupado: RangoOcupado[];
+}
+
+export interface TramoPrecio {
+  desde: string;
+  hasta: string;
+  noches: number;
+  precioNoche: number;
+  temporada: string | null;
+}
+
+export interface Cotizacion {
+  alojamientoId: number;
+  llegada: string;
+  salida: string;
+  huespedes: number;
+  noches: number;
+  tramos: TramoPrecio[];
+  huespedesExtra: number;
+  recargoHuespedes: number;
+  subtotal: number;
+  tarifaAseo: number;
+  total: number;
+  moneda: string;
+}
+
+export interface CotizacionPublica {
+  cotizacion: Cotizacion;
+  disponible: boolean;
+}
+
+export interface CotizarInput {
+  alojamientoId: number;
+  llegada: string;
+  salida: string;
+  huespedes: number;
+}
+
+export interface ReservaInput extends CotizarInput {
+  nombre: string;
+  correo: string;
+  telefono: string;
+  nota: string | null;
+  sitioWeb: string;
+}
+
+export interface ReservaCreada {
+  codigo: string;
+  token: string;
+  total: number;
+  pagoEnLinea: boolean;
+  checkoutUrl: string | null;
+  expiraEn: string | null;
+}
+
+export type EstadoReserva = "pendiente_pago" | "confirmada" | "cancelada" | "expirada" | "revision";
+
+export interface ReservaPublica {
+  codigo: string;
+  estado: EstadoReserva;
+  motivoEstado: string | null;
+  alojamientoNombre: string;
+  proyectoNombre: string;
+  llegada: string;
+  salida: string;
+  noches: number;
+  huespedes: number;
+  nombre: string;
+  subtotal: number;
+  tarifaAseo: number;
+  total: number;
+  moneda: string;
+  expiraEn: string | null;
+  pagoEnLinea: boolean;
+  /** Estado de la última transacción en Wompi (PENDING, APPROVED, DECLINED, VOIDED, ERROR). */
+  pagoEstado: string | null;
+  puedePagar: boolean;
 }

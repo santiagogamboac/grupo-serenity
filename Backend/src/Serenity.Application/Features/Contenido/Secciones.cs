@@ -196,8 +196,6 @@ public sealed record FooterContenido : ISeccionContenido
     public string YoutubeUrl { get; init; } = "";
     public string Copyright { get; init; } = "";
     public string Frase { get; init; } = "";
-    public string SitioActualTexto { get; init; } = "";
-    public string SitioActualUrl { get; init; } = "";
 
     public IEnumerable<long> MediaIds() => [];
     public ISeccionContenido ConMedia(IReadOnlyDictionary<long, MediaDto> m) => this;

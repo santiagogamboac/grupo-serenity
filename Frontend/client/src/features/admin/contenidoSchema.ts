@@ -135,7 +135,7 @@ export const SECCIONES: SeccionSpec[] = [
   {
     clave: "reservas",
     titulo: "Reservas",
-    descripcion: "Sección de contacto con el formulario de solicitud.",
+    descripcion: "Sección de reservas: reserva en línea (si hay alojamientos publicados) y formulario de consulta.",
     campos: [
       { nombre: "etiqueta", etiqueta: "Etiqueta", tipo: "texto" },
       { nombre: "titulo", etiqueta: "Titular", tipo: "titular", ayuda: AYUDA_TITULAR },
@@ -149,6 +149,11 @@ export const SECCIONES: SeccionSpec[] = [
       { nombre: "aviso", etiqueta: "Aviso legal bajo el botón", tipo: "largo" },
       { nombre: "exitoTitulo", etiqueta: "Mensaje de éxito — título", tipo: "texto" },
       { nombre: "exitoDescripcion", etiqueta: "Mensaje de éxito — descripción", tipo: "largo" },
+      { nombre: "reservaTitulo", etiqueta: "Reserva en línea — título", tipo: "texto" },
+      { nombre: "reservaSubtitulo", etiqueta: "Reserva en línea — subtítulo", tipo: "texto", ayuda: "Ej.: Pago seguro con Wompi" },
+      { nombre: "reservaBotonTexto", etiqueta: "Reserva en línea — botón", tipo: "texto", ayuda: "Vacío = usa el botón del formulario." },
+      { nombre: "condiciones", etiqueta: "Condiciones y política de cancelación", tipo: "largo", ayuda: "El huésped debe aceptarlas antes de reservar." },
+      { nombre: "reservaSinPagoTexto", etiqueta: "Mensaje cuando no hay pago en línea", tipo: "largo", ayuda: "Se muestra al huésped si Wompi no está configurado." },
     ],
   },
   {
@@ -163,8 +168,6 @@ export const SECCIONES: SeccionSpec[] = [
       { nombre: "youtubeUrl", etiqueta: "YouTube", tipo: "enlace" },
       { nombre: "copyright", etiqueta: "Copyright", tipo: "texto" },
       { nombre: "frase", etiqueta: "Frase final", tipo: "texto" },
-      { nombre: "sitioActualTexto", etiqueta: "Enlace al sitio anterior — texto", tipo: "texto" },
-      { nombre: "sitioActualUrl", etiqueta: "Enlace al sitio anterior — URL", tipo: "enlace" },
     ],
   },
 ];

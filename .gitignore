@@ -24,3 +24,6 @@ Frontend/.manus-logs/
 # OS
 .DS_Store
 Thumbs.db
+
+# Backups de producción (contenedor backup)
+backups/

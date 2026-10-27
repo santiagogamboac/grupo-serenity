@@ -4,18 +4,21 @@ Guía para trabajar en este repositorio. Complementa `README.md` (arranque y ope
 
 ## Qué es
 
-Sitio de Grupo Serenity con contenido 100 % administrable. `Backend/` (.NET 10) + `Frontend/` (Vite/React,
-repo aparte `grupo-serenity-modern`, ignorado por el `.gitignore` de la raíz) + `docker-compose.yml`.
+Sitio de Grupo Serenity con contenido 100 % administrable; reemplaza por completo el WordPress anterior (nada de
+WordPress, PHP ni enlaces a él). `Backend/` (.NET 10) + `Frontend/` (Vite/React, parte de este mismo repo) +
+`docker-compose.yml` (dev) y `docker-compose.prod.yml` (producción, ver `DEPLOY.md`).
 El plan y las decisiones de diseño están en `Task/00-plan-general.md`; el contrato HTTP en `Task/contrato-api.md`.
 Flujo de trabajo: cada feature es un `.md` en `Task/pending/`; al cumplir su checklist se mueve a `Task/done/`.
 
 ## Comandos
 
 ```bash
-docker compose up --build -d                  # todo el stack (requiere .env: copiar de .env.example)
+docker compose --profile dev up --build -d    # todo el stack + Mailpit :8027 (requiere .env: copiar de .env.example)
+docker compose restart web                    # tras recrear la api (nginx guarda la IP vieja)
 docker compose up -d postgres minio minio-init && bash scripts/run-api-local.sh   # API local
 cd Backend && dotnet build Serenity.slnx && dotnet test Serenity.slnx
-node scripts/smoke.mjs                        # E2E de la API contra el stack levantado
+SMOKE_BASE=http://localhost:8090 node scripts/smoke.mjs   # E2E de la API contra el stack levantado
+bash scripts/deploy.sh                        # en el servidor de producción (ver DEPLOY.md)
 cd Frontend && pnpm check && pnpm test && pnpm exec vite build
 ```
 
@@ -48,6 +51,11 @@ Clean Architecture estricta: `Api → Application, Infrastructure`; `Infrastruct
   parser en `Common/Ical.cs`, worker `Api/Workers/AirbnbSyncWorker.cs`. Cada `ical_url` se registra contra un anuncio y su id
   debe coincidir con el de `/rooms/<id>`; solo se aceptan hosts de Airbnb (el servidor descarga esa URL: evita SSRF) y la URL
   es secreta: nunca en la API pública ni en logs/errores. Plan y pendientes: `Task/pending/calendario/README.md`.
+- **Reserva directa**: `Features/Reservas/` (Cotizador puro, Wompi, ProcesadorPagos, público/admin, alojamientos con
+  temporadas y bloqueos, feed `.ics` de salida), `Features/Notificaciones/Notificador` (correo opcional por config),
+  `Api/Workers/ReservasWorker.cs`. Sin llaves de Wompi el pago en línea se apaga (confirmación manual desde el panel).
+  Front: `features/public/sections/ReservaEnLinea.tsx`, `pages/ReservaPage.tsx` (`/reserva/:codigo?t=`), hooks en
+  `features/public/useHome.ts`; admin en `AlojamientosProyecto.tsx` y `ReservasPage.tsx`. Detalle: `Task/done/17-*`.
 - Íconos permitidos: `Domain/Catalogos/Catalogos.cs` ↔ `Frontend/client/src/lib/icons.ts` (mantener sincronizados).
 
 ## Frontend (`Frontend/client/src`)
@@ -67,5 +75,9 @@ Clean Architecture estricta: `Api → Application, Infrastructure`; `Infrastruct
 
 - Puertos: este stack usa 5434/9012/9013/8081/8090 porque `urbanos-rurales` ocupa 5433/9002/8080/5173.
 - Heredocs de bash muy largos (> ~130 líneas) fallan en esta shell: crear archivos grandes con la herramienta de escritura.
-- `Frontend/` es otro repo git: los cambios ahí se commitean en ese repo, no en la raíz.
-- Correo/notificaciones (`Task/pending/15`) **no está implementado ni confirmado**; no asumir que existe SMTP.
+- `Frontend/` es parte del repo raíz (ya no es un repo aparte).
+- Los archivos existentes del frontend están a ~140 columnas aunque `.prettierrc` diga 80: no correr Prettier sobre
+  carpetas ni archivos existentes (diffs enormes); solo sobre archivos nuevos.
+- Producción: Caddy → `web` (nginx) → `api`. nginx toma la IP real de `X-Forwarded-For` solo desde redes privadas
+  (`set_real_ip_from`); sin eso todos los visitantes compartirían el cupo del rate limit.
+- El correo está implementado pero es opcional: sin `SMTP_HOST` no se envía nada. En dev, Mailpit (`--profile dev`).

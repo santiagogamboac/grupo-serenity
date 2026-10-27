@@ -7,6 +7,10 @@
 //
 // Credenciales: ADMIN_CORREO / ADMIN_PASSWORD del entorno o del archivo .env de la raíz.
 // Si la API se corre sin nginx, define MEDIA_ROOT=http://localhost:9012/serenity-media para bajar las imágenes.
+//
+//   SMOKE_SOLO_PUBLICO=1 SMOKE_BASE=https://www.gruposerenity.com node scripts/smoke.mjs
+// Solo lectura: corre los chequeos públicos (bloque 1) y termina. No necesita credenciales ni escribe nada:
+// es el que usa scripts/deploy.sh contra producción.
 
 import { readFileSync, existsSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -23,9 +27,10 @@ if (existsSync(join(raiz, '.env'))) {
 
 const BASE = (env.SMOKE_BASE ?? 'http://localhost:8081').replace(/\/$/, '')
 const MEDIA_ROOT = env.MEDIA_ROOT
+const SOLO_PUBLICO = env.SMOKE_SOLO_PUBLICO === '1'
 const CORREO = env.ADMIN_CORREO
 const PASSWORD = env.ADMIN_PASSWORD
-if (!CORREO || !PASSWORD) throw new Error('Falta ADMIN_CORREO / ADMIN_PASSWORD (env o .env).')
+if (!SOLO_PUBLICO && (!CORREO || !PASSWORD)) throw new Error('Falta ADMIN_CORREO / ADMIN_PASSWORD (env o .env).')
 
 let pasadas = 0
 const fallos = []
@@ -121,6 +126,30 @@ seccion('Salud y contenido público')
   const url = r.json.proyectos[0].imagenes[0].url
   const img = await fetch(MEDIA_ROOT ? MEDIA_ROOT + url.replace(/^\/media/, '') : BASE + url)
   ok('las imágenes públicas se descargan (200 + image/*)', img.status === 200 && (img.headers.get('content-type') ?? '').startsWith('image/'))
+
+  // El sitio no depende del WordPress anterior: ni enlaces a la tienda /shop/, ni "sitio actual", ni wp-content.
+  const texto = JSON.stringify(r.json)
+  ok('sin enlace "sitio actual" en el pie', !('sitioActualUrl' in r.json.contenido.footer) && !('sitioActualTexto' in r.json.contenido.footer))
+  ok('sin URLs del WordPress (wp-content, /shop/)', !/wp-content|wp-json|gruposerenity\.com\/shop/i.test(texto))
+  ok('ningún proyecto enlaza a gruposerenity.com', r.json.proyectos.every((p) => !/gruposerenity\.com/i.test(p.urlReserva ?? '')))
+  ok('trae reservaDirecta (pagoEnLinea + alojamientos)', typeof r.json.reservaDirecta?.pagoEnLinea === 'boolean' && Array.isArray(r.json.reservaDirecta?.alojamientos))
+  ok('reservaDirecta no expone el token iCal', !/tokenIcal|urlIcal/i.test(JSON.stringify(r.json.reservaDirecta)))
+
+  // A través de nginx: la SPA responde en / y en sus rutas (fallback a index.html), sin restos del WordPress.
+  if (BASE !== 'http://localhost:8081') {
+    for (const ruta of ['/', '/reserva/SER-NOEXISTE']) {
+      const p = await fetch(BASE + ruta)
+      const html = await p.text()
+      ok(`GET ${ruta} → SPA (200 html)`, p.status === 200 && html.includes('<div id="root">'), `status ${p.status}`)
+      ok(`GET ${ruta} sin wp-content`, !/wp-content|wp-includes/i.test(html))
+    }
+  }
+}
+
+if (SOLO_PUBLICO) {
+  console.log(`
+${pasadas} pruebas OK, ${fallos.length} fallidas (solo chequeos públicos).`)
+  process.exit(fallos.length ? 1 : 0)
 }
 
 // ─── 2. Autenticación ───────────────────────────────────────────────────────

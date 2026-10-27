@@ -27,12 +27,16 @@ export interface Dashboard {
   proyectosTotal: number;
   resenasPublicadas: number;
   valoresActivos: number;
+  reservasPendientesPago: number;
+  reservasEnRevision: number;
+  reservasProximas: number;
 }
 
 export interface Catalogos {
   iconos: string[];
   variantesValor: string[];
   estadosSolicitud: string[];
+  estadosReserva: string[];
   secciones: string[];
 }
 
@@ -128,4 +132,92 @@ export interface AnuncioAdmin extends AnuncioInput {
   ultimaSyncIntento: string | null;
   ultimaSyncOk: string | null;
   ultimaSyncError: string | null;
+}
+
+// ─── Reserva directa ──────────────────────────────────────────────────────────
+// Fechas de calendario como "yyyy-MM-dd"; montos en pesos (COP, sin decimales).
+
+export interface AlojamientoInput {
+  nombre: string;
+  descripcion: string;
+  imagenMediaId: number | null;
+  capacidad: number;
+  huespedesIncluidos: number;
+  precioNoche: number;
+  recargoHuespedExtra: number;
+  tarifaAseo: number;
+  estanciaMinima: number;
+  anuncioId: number | null;
+  publicado: boolean;
+}
+
+export interface TarifaInput {
+  nombre: string;
+  desde: string;
+  hasta: string;
+  precioNoche: number;
+}
+
+export interface Tarifa extends TarifaInput {
+  id: number;
+}
+
+export interface AlojamientoAdmin extends AlojamientoInput {
+  id: number;
+  proyectoId: number;
+  imagen: MediaDto | null;
+  orden: number;
+  /** Feed .ics de salida para pegar en Airbnb ("Importar calendario"). */
+  urlIcal: string;
+  tarifas: Tarifa[];
+}
+
+export interface BloqueoInput {
+  desde: string;
+  hasta: string;
+  motivo: string | null;
+}
+
+export interface BloqueoManual {
+  id: number;
+  desde: string;
+  hasta: string;
+  motivo: string;
+  creadoEn: string;
+}
+
+export interface ReservaAdmin {
+  id: number;
+  codigo: string;
+  alojamientoId: number;
+  alojamientoNombre: string;
+  proyectoId: number;
+  proyectoNombre: string;
+  llegada: string;
+  salida: string;
+  noches: number;
+  huespedes: number;
+  nombre: string;
+  correo: string;
+  telefono: string;
+  notaHuesped: string | null;
+  subtotal: number;
+  tarifaAseo: number;
+  total: number;
+  moneda: string;
+  estado: string;
+  motivoEstado: string | null;
+  expiraEn: string | null;
+  pagoProveedor: string | null;
+  pagoIntentos: number;
+  pagoReferencia: string | null;
+  pagoTransaccionId: string | null;
+  pagoEstado: string | null;
+  pagoMetodo: string | null;
+  pagadoEn: string | null;
+  notas: string | null;
+  /** Enlace /reserva/CODIGO?t=TOKEN para compartir con el huésped. */
+  enlaceHuesped: string;
+  creadoEn: string;
+  actualizadoEn: string;
 }

@@ -152,8 +152,6 @@ public sealed class FooterValidator : AbstractValidator<FooterContenido>
         RuleFor(x => x.YoutubeUrl).MaximumLength(500).EnlaceSeguro();
         RuleFor(x => x.Copyright).Texto(120);
         RuleFor(x => x.Frase).Texto(120, requerido: false);
-        RuleFor(x => x.SitioActualTexto).Texto(60, requerido: false);
-        RuleFor(x => x.SitioActualUrl).MaximumLength(500).EnlaceSeguro();
     }
 }
 

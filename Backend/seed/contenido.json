@@ -98,9 +98,7 @@
       "instagramUrl": "https://www.instagram.com/gruposerenity",
       "youtubeUrl": "http://www.youtube.com/@SerenityGroupVacacional",
       "copyright": "© 2026 Grupo Serenity",
-      "frase": "Hecho para descansar mejor",
-      "sitioActualTexto": "Visitar sitio actual",
-      "sitioActualUrl": "https://www.gruposerenity.com/"
+      "frase": "Hecho para descansar mejor"
     }
   },
   "proyectos": [
@@ -113,7 +111,7 @@
       "descripcion": "Días de sol, piscina y brisa salada. Un refugio para disfrutar la costa caribeña a tu manera.",
       "metaLugar": "Reserva del Mar",
       "metaEstancia": "Escapadas desde 2 noches",
-      "urlReserva": "https://www.gruposerenity.com/shop/",
+      "urlReserva": "",
       "ctaTexto": "Ver alojamientos",
       "publicado": true,
       "imagenes": [
@@ -130,7 +128,7 @@
       "descripcion": "Naturaleza, río y tardes lentas. El lugar perfecto para desconectarte del ruido y volver a ti.",
       "metaLugar": "Caldas, Colombia",
       "metaEstancia": "Escapadas desde 2 noches",
-      "urlReserva": "https://www.gruposerenity.com/shop/",
+      "urlReserva": "",
       "ctaTexto": "Ver alojamientos",
       "publicado": true,
       "imagenes": [

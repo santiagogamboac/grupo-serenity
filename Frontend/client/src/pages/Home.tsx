@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { plainRich } from "@/lib/rich";
 import { TEXTOS } from "@/features/public/textos";
 import { useHome } from "@/features/public/useHome";
@@ -8,7 +8,7 @@ import { Galeria } from "@/features/public/sections/Galeria";
 import { Destinos } from "@/features/public/sections/Destinos";
 import { Pie } from "@/features/public/sections/Pie";
 import { Experiencia, Portada } from "@/features/public/sections/Portada";
-import { Reservas } from "@/features/public/sections/Reservas";
+import { Reservas, type PedidoDestino } from "@/features/public/sections/Reservas";
 import { Resenas } from "@/features/public/sections/Resenas";
 import { Valores } from "@/features/public/sections/Valores";
 
@@ -16,6 +16,8 @@ import { Valores } from "@/features/public/sections/Valores";
 export default function Home() {
   const { data, isPending, isError, refetch, isFetching } = useHome();
   const { scrolled, progress } = useScrollEffects();
+  const [pedido, setPedido] = useState<PedidoDestino>(null);
+  const reservables = useMemo(() => new Set(data?.reservaDirecta.alojamientos.map(a => a.proyectoId)), [data]);
 
   const titulo = data?.contenido.marca.tituloSitio;
   useEffect(() => {
@@ -53,10 +55,15 @@ export default function Home() {
       <Portada hero={c.hero} totalDestinos={proyectos.length} />
       <Experiencia intro={c.intro} />
       <Valores seccion={c.valores} valores={valores} />
-      <Destinos seccion={c.destinos} proyectos={proyectos} />
+      <Destinos
+        seccion={c.destinos}
+        proyectos={proyectos}
+        reservables={reservables}
+        onReservar={id => setPedido(p => ({ proyectoId: id, n: (p?.n ?? 0) + 1 }))}
+      />
       <Galeria seccion={c.destinos} proyectos={proyectos} />
       <Resenas seccion={c.resenas} resenas={resenas} />
-      <Reservas seccion={c.reservas} proyectos={proyectos} />
+      <Reservas seccion={c.reservas} proyectos={proyectos} reservaDirecta={data.reservaDirecta} pedido={pedido} />
       <Pie marca={c.marca} footer={c.footer} />
     </main>
   );

@@ -10,6 +10,7 @@ import { MediaPage } from "./pages/MediaPage";
 import { ProyectoFormPage } from "./pages/ProyectoFormPage";
 import { ProyectosPage } from "./pages/ProyectosPage";
 import { ResenasPage } from "./pages/ResenasPage";
+import { ReservasPage } from "./pages/ReservasPage";
 import { SolicitudesPage } from "./pages/SolicitudesPage";
 import { ValoresPage } from "./pages/ValoresPage";
 
@@ -30,6 +31,7 @@ export default function AdminApp() {
                 <Route path="/admin/resenas" component={ResenasPage} />
                 <Route path="/admin/valores" component={ValoresPage} />
                 <Route path="/admin/contenido" component={ContenidoPage} />
+                <Route path="/admin/reservas" component={ReservasPage} />
                 <Route path="/admin/solicitudes" component={SolicitudesPage} />
                 <Route path="/admin/medios" component={MediaPage} />
                 <Route path="/admin/cuenta" component={CuentaPage} />

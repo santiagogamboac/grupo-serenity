@@ -67,7 +67,7 @@ public class EnlaceSeguroTests
     [InlineData(null)]
     [InlineData("#reservas")]
     [InlineData("/admin")]
-    [InlineData("https://www.gruposerenity.com/shop/")]
+    [InlineData("https://www.airbnb.com.co/rooms/12345")]
     [InlineData("http://wa.link/57cc3y")]
     [InlineData("mailto:hola@serenity.co")]
     [InlineData("tel:+573001112233")]

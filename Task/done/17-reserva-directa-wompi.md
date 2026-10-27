@@ -1,6 +1,6 @@
 # 17 — Reserva directa con pago en línea (Wompi): reemplazo del WordPress
 
-**Estado: APROBADO** (2026-10-18). Plan autoaprobado (ver preferencia del dueño: definir, aprobar, ejecutar y autoprobar).
+**Estado: HECHO** (2026-10-26) · aprobado el 2026-10-18. Plan autoaprobado (ver preferencia del dueño: definir, aprobar, ejecutar y autoprobar).
 
 ## Contexto
 
@@ -57,44 +57,65 @@ salida (fase E) la reduce del lado de Airbnb.
 ## Fases y checklist
 
 ### A. Base de datos y dominio
-- [ ] `V003__reserva_directa.sql`: `alojamientos`, `alojamiento_tarifas`, `alojamiento_bloqueos`, `reservas` (+ exclusión).
-- [ ] Cotizador puro (noches, temporadas, huésped extra, aseo, estancia mínima) con tests unitarios.
+- [x] `V003__reserva_directa.sql`: `alojamientos`, `alojamiento_tarifas`, `alojamiento_bloqueos`, `reservas` (+ exclusión).
+- [x] Cotizador puro (noches, temporadas, huésped extra, aseo, estancia mínima) con tests unitarios.
 
 ### B. API pública
-- [ ] `GET /api/public/proyectos/{slug}/alojamientos` (con disponibilidad del rango pedido).
-- [ ] `POST /api/public/reservas/cotizar` y `POST /api/public/reservas` (rate limit, honeypot, 409 si las fechas se ocupan).
-- [ ] `GET /api/public/reservas/{codigo}?t=token` y `POST .../verificar-pago` (consulta la transacción en Wompi).
-- [ ] `pagoEnLinea` en la respuesta para que el sitio sepa si redirige a Wompi.
+- [x] Alojamientos publicados en `GET /api/public/home` (`reservaDirecta`) + `GET /api/public/alojamientos/{id}/disponibilidad`
+      (en lugar del `GET /proyectos/{slug}/alojamientos` previsto: la landing ya trae todo en una sola llamada).
+- [x] `POST /api/public/reservas/cotizar` y `POST /api/public/reservas` (rate limit, honeypot, 409 si las fechas se ocupan).
+- [x] `GET /api/public/reservas/{codigo}?t=token`, `POST .../verificar` (consulta la transacción en Wompi) y `POST .../pago` (reintento).
+- [x] `pagoEnLinea` en la respuesta para que el sitio sepa si redirige a Wompi.
 
 ### C. Wompi
-- [ ] Opciones `Wompi:*`, firma de integridad, validación de eventos (tests con los ejemplos de la documentación).
-- [ ] Webhook idempotente + cliente HTTP de transacciones + worker de expiración/reconciliación.
+- [x] Opciones `Wompi:*`, firma de integridad, validación de eventos (tests con los ejemplos de la documentación).
+- [x] Webhook idempotente + cliente HTTP de transacciones + worker de expiración/reconciliación.
 
 ### D. Admin API
-- [ ] CRUD de alojamientos por proyecto, tarifas por temporada y bloqueos manuales.
-- [ ] Reservas: listar (filtros estado/búsqueda/fechas), detalle, confirmar (pago manual), cancelar, notas.
-- [ ] Dashboard: reservas confirmadas próximas, pendientes de pago y en revisión.
+- [x] CRUD de alojamientos por proyecto, tarifas por temporada y bloqueos manuales.
+- [x] Reservas: listar (filtros estado/búsqueda/fechas), detalle, confirmar (pago manual), cancelar, notas.
+- [x] Dashboard: reservas confirmadas próximas, pendientes de pago y en revisión.
 
 ### E. Feed iCal de salida
-- [ ] `GET /api/public/ical/{tokenIcal}.ics` por alojamiento (reservas vivas + bloqueos manuales) para importarlo en Airbnb.
+- [x] `GET /api/public/ical/{tokenIcal}.ics` por alojamiento (reservas vivas + bloqueos manuales) para importarlo en Airbnb.
 
 ### F. Correo (reemplazo de Contact Form 7) — opcional por configuración
-- [ ] `IEnviadorCorreo` SMTP; sin `Smtp:Host` no envía (solo registra). Mailpit en docker-compose para desarrollo.
-- [ ] Avisos: al equipo (nueva solicitud, nueva reserva, reserva pagada) y al huésped (reserva confirmada).
+- [x] `IEnviadorCorreo` SMTP; sin `Smtp:Host` no envía (solo registra). Mailpit en docker-compose para desarrollo.
+- [x] Avisos: al equipo (nueva solicitud, nueva reserva, reserva pagada) y al huésped (reserva confirmada).
 
 ### G. Frontend público
-- [ ] Sección de reservas con dos modos: **Reservar en línea** (alojamiento, calendario con días ocupados, cotización,
+- [x] Sección de reservas con dos modos: **Reservar en línea** (alojamiento, calendario con días ocupados, cotización,
       datos y pago) y **Enviar consulta** (formulario actual). Si no hay alojamientos publicados, solo consulta.
-- [ ] Página `/reserva/:codigo` (vuelta de Wompi): estado, desglose y verificación del pago.
-- [ ] Textos editoriales nuevos en la sección `reservas` (BD + seed + `contenidoSchema.ts`).
+- [x] Página `/reserva/:codigo` (vuelta de Wompi): estado, desglose y verificación del pago.
+- [x] Textos editoriales nuevos en la sección `reservas` (BD + seed + `contenidoSchema.ts`).
 
 ### H. Frontend admin
-- [ ] Alojamientos dentro del formulario de proyecto (con tarifas, bloqueos y el enlace iCal para Airbnb).
-- [ ] Página **Reservas** (lista, detalle, acciones) y contadores en el menú/resumen.
+- [x] Alojamientos dentro del formulario de proyecto (con tarifas, bloqueos y el enlace iCal para Airbnb).
+- [x] Página **Reservas** (lista, detalle, acciones) y contadores en el menú/resumen.
 
 ### I. Verificación y documentación
-- [ ] `dotnet test`, `pnpm check && pnpm test && vite build`, bloque nuevo del smoke (incluye webhook firmado).
-- [ ] Prueba en navegador del flujo completo; `contrato-api.md`, `README.md`, `CLAUDE.md`, `.env.example`.
+- [x] `dotnet test`, `pnpm check && pnpm test && vite build`, bloque nuevo del smoke (incluye webhook firmado).
+- [x] Prueba en navegador del flujo completo; `contrato-api.md`, `README.md`, `CLAUDE.md`, `.env.example`.
+
+### J. Sin WordPress (2026-10-26)
+- [x] Fuera el enlace "Visitar sitio actual" (`footer.sitioActual*`: record, validador, seed, admin, tipos, `Pie.tsx`).
+- [x] `urlReserva` vacía en el seed; `V004__sin_wordpress.sql` limpia bases ya sembradas (footer y URLs a
+      `gruposerenity.com`). Con alojamientos publicados, el botón del destino lleva a `#reservas` con el destino elegido.
+- [x] `grep -ri "wp-content\|wordpress\|gruposerenity.com/shop\|sitioActual"` sobre Backend/, Frontend/client y scripts/:
+      sin resultados en código (solo el comentario histórico de `Notificador.cs`). El smoke lo verifica en `/api/public/home`.
+- [x] Producción: `docker-compose.prod.yml` (Caddy HTTPS, sin puertos internos, backup diario), `.env.prod.example`,
+      `scripts/deploy.sh` (smoke de solo lectura con `SMOKE_SOLO_PUBLICO=1`) y `DEPLOY.md`.
+
+### Verificación (2026-10-26)
+- `dotnet test`: 123 OK. `pnpm check` limpio, `pnpm test` 13 OK, `vite build` OK.
+- `SMOKE_BASE=http://localhost:8090 node scripts/smoke.mjs`: **215 OK, 0 fallidas** (incluye el webhook firmado).
+- Navegador (1440 y 390 px): alojamiento con temporada y bloqueo creados en el admin → botón del destino → reserva con
+  el destino preseleccionado → calendario con días bloqueados → cotización (4 noches de temporada + 1 base + huésped
+  extra + aseo = $3.180.000) → checkout de Wompi con monto y firma → `/reserva/CODIGO?t=TOKEN` → evento firmado
+  PENDING → APPROVED: la página pasa a "¡Reserva confirmada!" sin recargar. Admin: confirmar, cancelar con aviso, notas,
+  bloqueos, copiar enlace iCal y enlace del huésped. Correos en Mailpit. Sin errores de consola en el sitio.
+- Ensayo de producción local (`deploy.sh` con override de puertos): HTTPS con HSTS, apex → www, `/shop/` → `/#reservas`,
+  solo Caddy expuesto, backup restaurado en un Postgres limpio, IP real del visitante llega a la API.
 
 ## Sin confirmar / pendiente del dueño
 - Llaves de Wompi (sandbox y producción) y registrar la URL de eventos en el dashboard de Wompi.

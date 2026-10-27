@@ -23,6 +23,7 @@ import {
 } from "../api";
 import { BotonEliminar, Campo, EncabezadoPagina, moverId, Ordenar, SelectorImagen, SelectNativo } from "../componentes";
 import type { ProyectoAdmin, ProyectoImagenAdmin } from "../tipos";
+import { AlojamientosProyecto } from "./AlojamientosProyecto";
 import { AnunciosProyecto } from "./AnunciosProyecto";
 
 const enlaceSeguro = (v: string | null | undefined) => {
@@ -170,6 +171,7 @@ export function ProyectoFormPage({ id }: { id: number | null }) {
       </form>
 
       {proyecto && <Galeria proyecto={proyecto} />}
+      {proyecto && <AlojamientosProyecto proyectoId={proyecto.id} />}
       {proyecto && <AnunciosProyecto proyectoId={proyecto.id} />}
     </>
   );

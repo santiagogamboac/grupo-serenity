@@ -1,12 +1,20 @@
 import { useState } from "react";
-import { ArrowUpRight, Clock3, MapPin } from "lucide-react";
+import { ArrowRight, Clock3, MapPin } from "lucide-react";
 import { RichTitle } from "@/components/RichTitle";
 import { iconoDe } from "@/lib/icons";
 import { pad2 } from "@/lib/rich";
 import type { DestinosContenido, ProyectoPublico } from "@/lib/types";
 import { TEXTOS } from "../textos";
 
-export function Destinos({ seccion, proyectos }: { seccion: DestinosContenido; proyectos: ProyectoPublico[] }) {
+interface Props {
+  seccion: DestinosContenido;
+  proyectos: ProyectoPublico[];
+  /** Proyectos con alojamientos que se reservan en el sitio: su botón lleva a #reservas con el destino elegido. */
+  reservables: Set<number>;
+  onReservar: (proyectoId: number) => void;
+}
+
+export function Destinos({ seccion, proyectos, reservables, onReservar }: Props) {
   const [seleccion, setSeleccion] = useState(0);
 
   if (proyectos.length === 0) return null;
@@ -15,16 +23,15 @@ export function Destinos({ seccion, proyectos }: { seccion: DestinosContenido; p
   const indice = Math.min(seleccion, proyectos.length - 1);
   const activo = proyectos[indice];
   const foto = activo.imagenes[0];
+  const reservable = reservables.has(activo.id);
+  const enlace = reservable ? "#reservas" : activo.urlReserva;
 
   return (
     <section className="destinations-section section-pad" id="destinos">
       <div className="page-width">
-        <div className="section-heading section-heading--destinations">
+        <div className="section-heading section-heading--destinations" data-aparecer>
           <div>
-            <div className="eyebrow eyebrow--light">
-              <span>03</span>
-              <i /> {seccion.etiqueta}
-            </div>
+            <div className="eyebrow">{seccion.etiqueta}</div>
             <h2>
               <RichTitle text={seccion.titulo} />
             </h2>
@@ -36,57 +43,73 @@ export function Destinos({ seccion, proyectos }: { seccion: DestinosContenido; p
           )}
         </div>
 
-        <div className="destination-switch" role="tablist" aria-label={TEXTOS.destinosAria}>
-          {proyectos.map((p, i) => {
-            const Icono = iconoDe(p.icono);
-            return (
-              <button
-                key={p.id}
-                className={i === indice ? "is-active" : ""}
-                onClick={() => setSeleccion(i)}
-                role="tab"
-                aria-selected={i === indice}
-              >
-                <Icono size={17} /> {p.etiqueta} <span>{pad2(i + 1)}</span>
-              </button>
-            );
-          })}
-        </div>
+        <div data-aparecer>
+          {proyectos.length > 1 && (
+            <div className="destination-switch" role="tablist" aria-label={TEXTOS.destinosAria}>
+              {proyectos.map((p, i) => {
+                const Icono = iconoDe(p.icono);
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    id={`destino-tab-${p.id}`}
+                    className={i === indice ? "is-active" : ""}
+                    onClick={() => setSeleccion(i)}
+                    role="tab"
+                    aria-selected={i === indice}
+                    aria-controls="destino-panel"
+                  >
+                    <Icono size={17} aria-hidden="true" /> {p.etiqueta}
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
-        <div className="destination-feature">
-          <div className="destination-copy">
-            <div className="destination-label">{activo.ubicacionEtiqueta}</div>
-            <h3>{activo.titulo}</h3>
-            <p>{activo.descripcion}</p>
-            {activo.urlReserva && (
-              <a className="button button--outline-light" href={activo.urlReserva}>
-                {activo.ctaTexto} <ArrowUpRight size={17} />
-              </a>
-            )}
-            <div className="destination-meta">
-              {activo.metaLugar && (
-                <span>
-                  <MapPin size={15} /> {activo.metaLugar}
-                </span>
+          <div
+            className="destination-feature"
+            id="destino-panel"
+            role={proyectos.length > 1 ? "tabpanel" : undefined}
+            aria-labelledby={proyectos.length > 1 ? `destino-tab-${activo.id}` : undefined}
+          >
+            <div className="destination-copy" key={`copia-${activo.id}`}>
+              <div className="destination-label">{activo.ubicacionEtiqueta}</div>
+              <h3>{activo.titulo}</h3>
+              <p>{activo.descripcion}</p>
+              {(activo.metaLugar || activo.metaEstancia) && (
+                <ul className="destination-meta">
+                  {activo.metaLugar && (
+                    <li>
+                      <MapPin size={15} aria-hidden="true" /> {activo.metaLugar}
+                    </li>
+                  )}
+                  {activo.metaEstancia && (
+                    <li>
+                      <Clock3 size={15} aria-hidden="true" /> {activo.metaEstancia}
+                    </li>
+                  )}
+                </ul>
               )}
-              {activo.metaEstancia && (
-                <span>
-                  <Clock3 size={15} /> {activo.metaEstancia}
-                </span>
+              {enlace && (
+                <a className="pill-cta" href={enlace} onClick={reservable ? () => onReservar(activo.id) : undefined}>
+                  <span>{activo.ctaTexto}</span>
+                  <i aria-hidden="true">
+                    <ArrowRight size={16} />
+                  </i>
+                </a>
               )}
             </div>
-          </div>
-          <div className="destination-photo">
-            {foto && <img src={foto.url} alt={foto.textoAlt} />}
-            <div className="photo-chip">
-              <span>{seccion.chipMarca}</span>
-              <strong>
-                {pad2(indice + 1)} / {pad2(proyectos.length)}
-              </strong>
+            <div className="destination-photo">
+              {foto && <img key={foto.url} src={foto.url} alt={foto.textoAlt} loading="lazy" decoding="async" />}
+              <div className="photo-chip">
+                <span>{seccion.chipMarca}</span>
+                <strong>
+                  {pad2(indice + 1)} / {pad2(proyectos.length)}
+                </strong>
+              </div>
             </div>
           </div>
         </div>
-
       </div>
     </section>
   );

@@ -3,8 +3,12 @@ import { toast } from "sonner";
 import { api, mensajeDeError } from "@/lib/api";
 import type { SeccionClave } from "@/lib/types";
 import type {
+  AlojamientoAdmin,
+  AlojamientoInput,
   AnuncioAdmin,
   AnuncioInput,
+  BloqueoInput,
+  BloqueoManual,
   Catalogos,
   ContenidoAdmin,
   Dashboard,
@@ -14,7 +18,10 @@ import type {
   ProyectoInput,
   ResenaAdmin,
   ResenaInput,
+  ReservaAdmin,
   SolicitudAdmin,
+  Tarifa,
+  TarifaInput,
   ValorAdmin,
   ValorInput,
 } from "./tipos";
@@ -29,6 +36,9 @@ const K = {
   solicitudes: ["admin", "solicitudes"] as const,
   media: ["admin", "media"] as const,
   anuncios: ["admin", "anuncios"] as const,
+  alojamientos: ["admin", "alojamientos"] as const,
+  bloqueos: ["admin", "bloqueos"] as const,
+  reservas: ["admin", "reservas"] as const,
 };
 
 /** Cualquier cambio del admin puede alterar lo que ve la landing. */
@@ -89,6 +99,31 @@ export const useSolicitudes = (f: { estado: string; q: string; page: number }) =
     queryKey: [...K.solicitudes, f],
     queryFn: () =>
       get<Paginado<SolicitudAdmin>>("/admin/solicitudes", {
+        estado: f.estado || undefined,
+        q: f.q || undefined,
+        page: f.page,
+        pageSize: 15,
+      }),
+    placeholderData: prev => prev,
+  });
+
+export const useAlojamientos = (proyectoId: number) =>
+  useQuery({
+    queryKey: [...K.alojamientos, proyectoId],
+    queryFn: () => get<AlojamientoAdmin[]>(`/admin/proyectos/${proyectoId}/alojamientos`),
+  });
+
+export const useBloqueos = (alojamientoId: number) =>
+  useQuery({
+    queryKey: [...K.bloqueos, alojamientoId],
+    queryFn: () => get<BloqueoManual[]>(`/admin/alojamientos/${alojamientoId}/bloqueos`),
+  });
+
+export const useReservas = (f: { estado: string; q: string; page: number }) =>
+  useQuery({
+    queryKey: [...K.reservas, f],
+    queryFn: () =>
+      get<Paginado<ReservaAdmin>>("/admin/reservas", {
         estado: f.estado || undefined,
         q: f.q || undefined,
         page: f.page,
@@ -174,6 +209,70 @@ export const useEliminarAnuncio = () =>
 
 export const useSincronizarAnuncio = () =>
   useMutacion(async (id: number) => (await api.post<AnuncioAdmin>(`/admin/anuncios/${id}/sincronizar`)).data, [K.anuncios]);
+
+export const useCrearAlojamiento = () =>
+  useMutacion(
+    async ({ proyectoId, datos }: { proyectoId: number; datos: AlojamientoInput }) =>
+      (await api.post<AlojamientoAdmin>(`/admin/proyectos/${proyectoId}/alojamientos`, datos)).data,
+    [K.alojamientos],
+    "Alojamiento creado"
+  );
+
+export const useActualizarAlojamiento = () =>
+  useMutacion(
+    async ({ id, datos }: { id: number; datos: AlojamientoInput }) =>
+      (await api.put<AlojamientoAdmin>(`/admin/alojamientos/${id}`, datos)).data,
+    [K.alojamientos],
+    "Alojamiento guardado"
+  );
+
+export const useEliminarAlojamiento = () =>
+  useMutacion((id: number) => api.delete(`/admin/alojamientos/${id}`), [K.alojamientos], "Alojamiento eliminado");
+
+export const useCrearTarifa = () =>
+  useMutacion(
+    async ({ alojamientoId, datos }: { alojamientoId: number; datos: TarifaInput }) =>
+      (await api.post<Tarifa>(`/admin/alojamientos/${alojamientoId}/tarifas`, datos)).data,
+    [K.alojamientos],
+    "Temporada agregada"
+  );
+
+export const useEliminarTarifa = () =>
+  useMutacion((id: number) => api.delete(`/admin/tarifas/${id}`), [K.alojamientos], "Temporada eliminada");
+
+export const useCrearBloqueo = () =>
+  useMutacion(
+    async ({ alojamientoId, datos }: { alojamientoId: number; datos: BloqueoInput }) =>
+      (await api.post<BloqueoManual>(`/admin/alojamientos/${alojamientoId}/bloqueos`, datos)).data,
+    [K.bloqueos],
+    "Fechas bloqueadas"
+  );
+
+export const useEliminarBloqueo = () =>
+  useMutacion((id: number) => api.delete(`/admin/bloqueos/${id}`), [K.bloqueos], "Bloqueo eliminado");
+
+export const useConfirmarReserva = () =>
+  useMutacion(
+    async (id: number) => (await api.post<ReservaAdmin>(`/admin/reservas/${id}/confirmar`)).data,
+    [K.reservas, K.dashboard],
+    "Reserva confirmada"
+  );
+
+export const useCancelarReserva = () =>
+  useMutacion(
+    async ({ id, motivo, avisarHuesped }: { id: number; motivo: string; avisarHuesped: boolean }) =>
+      (await api.post<ReservaAdmin>(`/admin/reservas/${id}/cancelar`, { motivo, avisarHuesped })).data,
+    [K.reservas, K.dashboard],
+    "Reserva cancelada"
+  );
+
+export const useNotasReserva = () =>
+  useMutacion(
+    async ({ id, notas }: { id: number; notas: string }) =>
+      (await api.put<ReservaAdmin>(`/admin/reservas/${id}/notas`, { notas })).data,
+    [K.reservas],
+    "Notas guardadas"
+  );
 
 export const useCrearResena = () =>
   useMutacion((d: ResenaInput) => api.post("/admin/resenas", d), [K.resenas, K.dashboard], "Reseña creada");

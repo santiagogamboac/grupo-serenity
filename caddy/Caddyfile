@@ -1,0 +1,24 @@
+# Proxy público de producción: HTTPS automático (Let's Encrypt) delante de `web` (nginx + SPA + /api + /media).
+# El dominio sale de .env (DOMINIO); el canónico es www.<DOMINIO>, el mismo de PUBLIC_ORIGIN.
+{
+	email {$ACME_EMAIL}
+}
+
+{$DOMINIO} {
+	redir https://www.{$DOMINIO}{uri} permanent
+}
+
+www.{$DOMINIO} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+
+	# Enlaces viejos del WordPress (tienda y reservas de WooCommerce / WP Hotel Booking) → reserva en el sitio nuevo.
+	@wordpress path /shop /shop/* /product/* /rooms/* /checkout* /cart* /wp-admin* /wp-login.php
+	redir @wordpress /#reservas permanent
+
+	reverse_proxy web:80
+}

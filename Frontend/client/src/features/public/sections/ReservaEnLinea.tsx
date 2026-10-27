@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -25,6 +25,7 @@ import type {
   RangoOcupado,
   ReservasContenido,
 } from "@/lib/types";
+import type { PedidoDestino } from "./Reservas";
 import { TEXTOS } from "../textos";
 import { useCotizacion, useCrearReserva, useDisponibilidad } from "../useHome";
 
@@ -54,6 +55,7 @@ interface Props {
   proyectos: ProyectoPublico[];
   alojamientos: AlojamientoPublico[];
   pagoEnLinea: boolean;
+  pedido?: PedidoDestino;
 }
 
 export function ReservaEnLinea({
@@ -61,6 +63,7 @@ export function ReservaEnLinea({
   proyectos,
   alojamientos,
   pagoEnLinea,
+  pedido,
 }: Props) {
   const destinos = useMemo(
     () => proyectos.filter(p => alojamientos.some(a => a.proyectoId === p.id)),
@@ -85,6 +88,12 @@ export function ReservaEnLinea({
     setLlegada(null);
     setSalida(null);
   };
+
+  // Botón "Ver alojamientos" de un destino: lo preselecciona (si tiene alojamientos publicados).
+  useEffect(() => {
+    if (pedido && destinos.some(p => p.id === pedido.proyectoId))
+      elegirDestino(pedido.proyectoId);
+  }, [pedido]);
 
   const elegirAlojamiento = (a: AlojamientoPublico) => {
     setAlojamientoId(a.id);
@@ -423,7 +432,7 @@ export function ReservaEnLinea({
  * Elegir llegada y luego salida. Las noches ocupadas no se pueden tomar, pero su primer día sí sirve de salida
  * (esa noche empieza otra estadía). Totalmente controlado: el rango se pinta con modificadores propios.
  */
-function CalendarioReserva({
+export function CalendarioReserva({
   ocupado,
   estanciaMinima,
   llegada,
@@ -466,6 +475,7 @@ function CalendarioReserva({
     <div className="calendario-reserva">
       <DayPicker
         locale={es}
+        labels={{ labelNext: () => T.mesSiguiente, labelPrevious: () => T.mesAnterior }}
         defaultMonth={mes}
         startMonth={new Date()}
         endMonth={ultimoMes}

@@ -20,7 +20,7 @@ public sealed class OpcionesNotificaciones
 }
 
 /// <summary>
-/// Avisos por correo (lo que hacía Contact Form 7 en el WordPress). Nunca rompe el flujo que lo llama:
+/// Avisos por correo de solicitudes y reservas. Nunca rompe el flujo que lo llama:
 /// un fallo del servidor de correo se registra y se sigue.
 /// </summary>
 public sealed class Notificador(

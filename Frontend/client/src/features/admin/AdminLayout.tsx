@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import {
+  BedDouble,
   ExternalLink,
   FileText,
   Heart,
@@ -21,6 +22,7 @@ import { useDashboard } from "./api";
 
 const ENLACES = [
   { href: "/admin", etiqueta: "Resumen", Icono: LayoutDashboard, exacto: true },
+  { href: "/admin/reservas", etiqueta: "Reservas", Icono: BedDouble },
   { href: "/admin/solicitudes", etiqueta: "Solicitudes", Icono: Inbox },
   { href: "/admin/proyectos", etiqueta: "Proyectos", Icono: MapPinned },
   { href: "/admin/contenido", etiqueta: "Contenido del sitio", Icono: FileText },
@@ -56,6 +58,17 @@ export function AdminLayout({ children }: { children: ReactNode }) {
           {e.href === "/admin/solicitudes" && !!resumen?.solicitudesNuevas && (
             <span className="rounded-full bg-emerald-300 px-1.5 text-[11px] font-bold text-emerald-950">
               {resumen.solicitudesNuevas}
+            </span>
+          )}
+          {e.href === "/admin/reservas" && !!resumen && resumen.reservasPendientesPago + resumen.reservasEnRevision > 0 && (
+            <span
+              className={cn(
+                "rounded-full px-1.5 text-[11px] font-bold",
+                resumen.reservasEnRevision > 0 ? "bg-rose-300 text-rose-950" : "bg-amber-200 text-amber-950"
+              )}
+              title={`${resumen.reservasPendientesPago} pendientes de pago · ${resumen.reservasEnRevision} en revisión`}
+            >
+              {resumen.reservasPendientesPago + resumen.reservasEnRevision}
             </span>
           )}
         </Link>

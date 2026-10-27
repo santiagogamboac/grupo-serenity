@@ -1,0 +1,68 @@
+# Producción: se aplica encima de docker-compose.yml.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build      (lo hace scripts/deploy.sh)
+#
+# Cambios frente al stack de desarrollo:
+#   - Caddy publica 80/443 con HTTPS automático para DOMINIO y www.DOMINIO, y es lo único expuesto.
+#   - postgres, minio, api y web sin puertos en el host (solo red interna de Docker).
+#   - Backup diario: pg_dump + copia del volumen de MinIO en BACKUP_DIR (por defecto ./backups).
+#   - Mailpit (profile "dev") no se levanta: no usar --profile dev aquí.
+# Requiere Docker Compose ≥ 2.24 (etiqueta !reset).
+
+services:
+  postgres:
+    ports: !reset []
+
+  minio:
+    ports: !reset []
+
+  api:
+    ports: !reset []
+
+  web:
+    ports: !reset []
+
+  caddy:
+    image: caddy:2.8.4-alpine
+    container_name: serenity_caddy
+    restart: unless-stopped
+    depends_on:
+      web:
+        condition: service_healthy
+    environment:
+      DOMINIO: ${DOMINIO:?Define DOMINIO en .env (p. ej. gruposerenity.com)}
+      ACME_EMAIL: ${ACME_EMAIL:?Define ACME_EMAIL en .env (avisos de Let's Encrypt)}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+  # Backup diario a las BACKUP_HORA (hora de Colombia) y otro al arrancar si hoy no hay ninguno.
+  backup:
+    image: postgres:16-alpine
+    container_name: serenity_backup
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      TZ: America/Bogota
+      PGHOST: postgres
+      PGUSER: serenity_user
+      PGDATABASE: serenity_db
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      BACKUP_HORA: ${BACKUP_HORA:-03:00}
+      BACKUP_RETENCION_DIAS: ${BACKUP_RETENCION_DIAS:-14}
+    volumes:
+      - ${BACKUP_DIR:-./backups}:/backups
+      - minio_data:/minio:ro
+      - ./scripts/backup.sh:/usr/local/bin/backup.sh:ro
+    entrypoint: ["/bin/sh", "/usr/local/bin/backup.sh"]
+
+volumes:
+  caddy_data:
+  caddy_config:

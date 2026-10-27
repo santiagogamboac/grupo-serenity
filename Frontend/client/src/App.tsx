@@ -8,6 +8,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
+import ReservaPage from "./pages/ReservaPage";
 
 // El panel admin se carga aparte: los visitantes del sitio público no descargan ese código.
 const AdminApp = lazy(() => import("./features/admin/AdminApp"));
@@ -16,6 +17,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/reserva/:codigo" component={ReservaPage} />
       <Route path="/admin/*?">
         <Suspense fallback={null}>
           <AdminApp />
