@@ -21,6 +21,13 @@ public interface IAlojamientoRepository
     /// <summary>¿El anuncio de Airbnb ya está vinculado a otro alojamiento?</summary>
     Task<bool> AnuncioVinculadoAsync(long anuncioId, long? excluirId, CancellationToken ct);
 
+    /// <summary>Galería (sin la portada), ordenada por alojamiento y orden.</summary>
+    Task<IReadOnlyList<AlojamientoImagenRegistro>> ImagenesAsync(IReadOnlyCollection<long> alojamientoIds, CancellationToken ct);
+    Task<long> AgregarImagenAsync(long alojamientoId, long mediaId, string textoAlt, CancellationToken ct);
+    Task<bool> ActualizarAltImagenAsync(long alojamientoId, long imagenId, string textoAlt, CancellationToken ct);
+    Task<bool> EliminarImagenAsync(long alojamientoId, long imagenId, CancellationToken ct);
+    Task ReordenarImagenesAsync(long alojamientoId, IReadOnlyList<long> ids, CancellationToken ct);
+
     Task<IReadOnlyList<TarifaRegistro>> TarifasAsync(IReadOnlyCollection<long> alojamientoIds, CancellationToken ct);
 
     /// <summary>null si se solapa con otra temporada del mismo alojamiento.</summary>

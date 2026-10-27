@@ -47,6 +47,7 @@ public sealed class ObtenerHomeQueryHandler(
         var resenasDto = await resenas.ListarAsync(soloPublicadas: true, ct);
         var alojamientosLista = await alojamientos.ListarPublicosAsync(ct);
         var imagenes = await alojamientoEnsamblador.ImagenesAsync(alojamientosLista, ct);
+        var galerias = await alojamientoEnsamblador.GaleriaAsync(alojamientosLista, ct);
 
         return new HomeDto(
             // object (no la interfaz) para que System.Text.Json serialice el tipo concreto de cada sección.
@@ -59,7 +60,8 @@ public sealed class ObtenerHomeQueryHandler(
             resenasDto.Select(r => new ResenaPublicaDto(r.Id, r.Autor, r.Contexto, r.Texto, r.Calificacion)).ToList(),
             new ReservaDirectaDto(wompi.Habilitado, alojamientosLista.Select(a => new AlojamientoPublicoDto(
                 a.Id, a.ProyectoId, a.Nombre, a.Descripcion, a.ImagenMediaId is { } m ? imagenes.GetValueOrDefault(m) : null,
-                a.Capacidad, a.HuespedesIncluidos, a.PrecioNoche, a.RecargoHuespedExtra, a.TarifaAseo, a.EstanciaMinima)).ToList()));
+                a.Capacidad, a.HuespedesIncluidos, a.PrecioNoche, a.RecargoHuespedExtra, a.TarifaAseo, a.EstanciaMinima,
+                galerias[a.Id].Select(i => new AlojamientoImagenPublicaDto(i.Id, i.Url, i.TextoAlt)).ToList())).ToList()));
     }
 }
 

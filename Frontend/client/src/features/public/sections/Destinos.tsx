@@ -3,7 +3,8 @@ import { ArrowRight, Clock3, MapPin } from "lucide-react";
 import { RichTitle } from "@/components/RichTitle";
 import { iconoDe } from "@/lib/icons";
 import { pad2 } from "@/lib/rich";
-import type { DestinosContenido, ProyectoPublico } from "@/lib/types";
+import type { AlojamientoPublico, DestinosContenido, ProyectoPublico } from "@/lib/types";
+import { TarjetasAlojamientos } from "../alojamiento/TarjetasAlojamientos";
 import { TEXTOS } from "../textos";
 
 interface Props {
@@ -12,9 +13,11 @@ interface Props {
   /** Proyectos con alojamientos que se reservan en el sitio: su botón lleva a #reservas con el destino elegido. */
   reservables: Set<number>;
   onReservar: (proyectoId: number) => void;
+  /** Alojamientos reservables: los del destino activo se listan con enlace a su detalle. */
+  alojamientos?: AlojamientoPublico[];
 }
 
-export function Destinos({ seccion, proyectos, reservables, onReservar }: Props) {
+export function Destinos({ seccion, proyectos, reservables, onReservar, alojamientos = [] }: Props) {
   const [seleccion, setSeleccion] = useState(0);
 
   if (proyectos.length === 0) return null;
@@ -109,6 +112,7 @@ export function Destinos({ seccion, proyectos, reservables, onReservar }: Props)
               </div>
             </div>
           </div>
+          <TarjetasAlojamientos alojamientos={alojamientos} proyectoId={activo.id} titulo={TEXTOS.alojamiento.enEsteDestino} />
         </div>
       </div>
     </section>

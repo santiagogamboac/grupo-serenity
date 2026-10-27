@@ -170,6 +170,16 @@ export interface AlojamientoAdmin extends AlojamientoInput {
   /** Feed .ics de salida para pegar en Airbnb ("Importar calendario"). */
   urlIcal: string;
   tarifas: Tarifa[];
+  /** Galería para la página de detalle (la portada es `imagen`). */
+  imagenes: AlojamientoImagenAdmin[];
+}
+
+export interface AlojamientoImagenAdmin {
+  id: number;
+  mediaId: number;
+  url: string;
+  textoAlt: string;
+  orden: number;
 }
 
 export interface BloqueoInput {

@@ -115,6 +115,63 @@ internal sealed class AlojamientoRepository(DbConnectionFactory db) : IAlojamien
             new { anuncioId, excluirId }, cancellationToken: ct));
     }
 
+    public async Task<IReadOnlyList<AlojamientoImagenRegistro>> ImagenesAsync(IReadOnlyCollection<long> alojamientoIds, CancellationToken ct)
+    {
+        if (alojamientoIds.Count == 0)
+        {
+            return [];
+        }
+
+        using var conn = await db.OpenAsync(ct);
+        return (await conn.QueryAsync<AlojamientoImagenRegistro>(new CommandDefinition(
+            """
+            SELECT ai.id, ai.alojamiento_id, ai.media_id, m.storage_key, ai.texto_alt, ai.orden
+              FROM alojamiento_imagenes ai
+              JOIN media m ON m.id = ai.media_id
+             WHERE ai.alojamiento_id = ANY(@ids)
+             ORDER BY ai.alojamiento_id, ai.orden, ai.id
+            """, new { ids = alojamientoIds.ToArray() }, cancellationToken: ct))).ToList();
+    }
+
+    public async Task<long> AgregarImagenAsync(long alojamientoId, long mediaId, string textoAlt, CancellationToken ct)
+    {
+        using var conn = await db.OpenAsync(ct);
+        return await conn.ExecuteScalarAsync<long>(new CommandDefinition(
+            """
+            INSERT INTO alojamiento_imagenes (alojamiento_id, media_id, texto_alt, orden)
+            VALUES (@alojamientoId, @mediaId, @textoAlt,
+                    (SELECT COALESCE(MAX(orden), 0) + 1 FROM alojamiento_imagenes WHERE alojamiento_id = @alojamientoId))
+            RETURNING id
+            """, new { alojamientoId, mediaId, textoAlt }, cancellationToken: ct));
+    }
+
+    public async Task<bool> ActualizarAltImagenAsync(long alojamientoId, long imagenId, string textoAlt, CancellationToken ct)
+    {
+        using var conn = await db.OpenAsync(ct);
+        return await conn.ExecuteAsync(new CommandDefinition(
+            "UPDATE alojamiento_imagenes SET texto_alt = @textoAlt WHERE id = @imagenId AND alojamiento_id = @alojamientoId",
+            new { alojamientoId, imagenId, textoAlt }, cancellationToken: ct)) > 0;
+    }
+
+    public async Task<bool> EliminarImagenAsync(long alojamientoId, long imagenId, CancellationToken ct)
+    {
+        using var conn = await db.OpenAsync(ct);
+        return await conn.ExecuteAsync(new CommandDefinition(
+            "DELETE FROM alojamiento_imagenes WHERE id = @imagenId AND alojamiento_id = @alojamientoId",
+            new { alojamientoId, imagenId }, cancellationToken: ct)) > 0;
+    }
+
+    public async Task ReordenarImagenesAsync(long alojamientoId, IReadOnlyList<long> ids, CancellationToken ct)
+    {
+        using var conn = await db.OpenAsync(ct);
+        await conn.ExecuteAsync(new CommandDefinition(
+            """
+            UPDATE alojamiento_imagenes ai SET orden = x.ord
+              FROM unnest(@ids::bigint[]) WITH ORDINALITY AS x(id, ord)
+             WHERE ai.id = x.id AND ai.alojamiento_id = @alojamientoId
+            """, new { alojamientoId, ids = ids.ToArray() }, cancellationToken: ct));
+    }
+
     public async Task<IReadOnlyList<TarifaRegistro>> TarifasAsync(IReadOnlyCollection<long> alojamientoIds, CancellationToken ct)
     {
         if (alojamientoIds.Count == 0)

@@ -58,6 +58,7 @@ internal sealed class MediaRepository(DbConnectionFactory db) : IMediaRepository
             """
             SELECT EXISTS (SELECT 1 FROM proyecto_imagenes WHERE media_id = @id)
                 OR EXISTS (SELECT 1 FROM alojamientos WHERE imagen_media_id = @id)
+                OR EXISTS (SELECT 1 FROM alojamiento_imagenes WHERE media_id = @id)
                 OR EXISTS (
                     SELECT 1
                       FROM secciones s, jsonb_each(s.contenido) e

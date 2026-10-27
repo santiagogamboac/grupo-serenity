@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Serenity.Application.Common;
 using Serenity.Application.Features.Reservas;
 
 namespace Serenity.Api.Controllers;
@@ -30,6 +31,27 @@ public sealed class AdminReservasController(IMediator mediator) : ApiControllerB
     [HttpDelete("alojamientos/{id:long}")]
     public async Task<IActionResult> EliminarAlojamiento(long id, CancellationToken ct)
         => Responder(await Mediator.Send(new EliminarAlojamientoCommand(id), ct));
+
+    // ─── Galería del alojamiento ──────────────────────────────────────────────
+
+    public sealed record ImagenAlojamientoRequest(long MediaId, string? TextoAlt);
+    public sealed record TextoAltAlojamientoRequest(string? TextoAlt);
+
+    [HttpPost("alojamientos/{id:long}/imagenes")]
+    public async Task<IActionResult> AgregarImagen(long id, [FromBody] ImagenAlojamientoRequest body, CancellationToken ct)
+        => Creado(await Mediator.Send(new AgregarImagenAlojamientoCommand(id, body.MediaId, body.TextoAlt ?? ""), ct));
+
+    [HttpPut("alojamientos/{id:long}/imagenes/orden")]
+    public async Task<IActionResult> ReordenarImagenes(long id, [FromBody] OrdenInput body, CancellationToken ct)
+        => Responder(await Mediator.Send(new ReordenarImagenesAlojamientoCommand(id, body.Ids), ct));
+
+    [HttpPut("alojamientos/{id:long}/imagenes/{imagenId:long}")]
+    public async Task<IActionResult> ActualizarAltImagen(long id, long imagenId, [FromBody] TextoAltAlojamientoRequest body, CancellationToken ct)
+        => Responder(await Mediator.Send(new ActualizarAltImagenAlojamientoCommand(id, imagenId, body.TextoAlt ?? ""), ct));
+
+    [HttpDelete("alojamientos/{id:long}/imagenes/{imagenId:long}")]
+    public async Task<IActionResult> EliminarImagen(long id, long imagenId, CancellationToken ct)
+        => Responder(await Mediator.Send(new EliminarImagenAlojamientoCommand(id, imagenId), ct));
 
     [HttpPost("alojamientos/{id:long}/tarifas")]
     public async Task<IActionResult> CrearTarifa(long id, [FromBody] TarifaInput body, CancellationToken ct)

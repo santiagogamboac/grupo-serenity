@@ -34,6 +34,16 @@ public sealed class AlojamientoRegistro
     public bool Publicado { get; init; }
 }
 
+public sealed class AlojamientoImagenRegistro
+{
+    public long Id { get; init; }
+    public long AlojamientoId { get; init; }
+    public long MediaId { get; init; }
+    public string StorageKey { get; init; } = default!;
+    public string TextoAlt { get; init; } = default!;
+    public int Orden { get; init; }
+}
+
 public sealed class TarifaRegistro
 {
     public long Id { get; init; }

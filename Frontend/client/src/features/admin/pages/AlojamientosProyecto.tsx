@@ -38,6 +38,7 @@ import {
   type MediaRef,
 } from "../componentes";
 import type { AlojamientoAdmin } from "../tipos";
+import { GaleriaAlojamientoAdmin } from "./GaleriaAlojamientoAdmin";
 
 const pesos = (etiqueta: string, min = 0) =>
   z.coerce
@@ -208,6 +209,9 @@ function FilaAlojamiento({
           <Temporadas alojamiento={a} />
           <Bloqueos alojamientoId={a.id} />
           <EnlaceIcal url={a.urlIcal} />
+          <div className="lg:col-span-2">
+            <GaleriaAlojamientoAdmin alojamientoId={a.id} imagenes={a.imagenes} />
+          </div>
         </div>
       )}
 

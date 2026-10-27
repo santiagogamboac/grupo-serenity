@@ -12,10 +12,13 @@ public sealed record TarifaDto(long Id, string Nombre, DateOnly Desde, DateOnly 
 
 public sealed record BloqueoManualDto(long Id, DateOnly Desde, DateOnly Hasta, string Motivo, DateTime CreadoEn);
 
+public sealed record AlojamientoImagenDto(long Id, long MediaId, string Url, string TextoAlt, int Orden);
+
 public sealed record AlojamientoAdminDto(
     long Id, long ProyectoId, string Nombre, string Descripcion, long? ImagenMediaId, MediaDto? Imagen,
     int Capacidad, int HuespedesIncluidos, long PrecioNoche, long RecargoHuespedExtra, long TarifaAseo,
-    int EstanciaMinima, long? AnuncioId, bool Publicado, int Orden, string UrlIcal, IReadOnlyList<TarifaDto> Tarifas);
+    int EstanciaMinima, long? AnuncioId, bool Publicado, int Orden, string UrlIcal, IReadOnlyList<TarifaDto> Tarifas,
+    IReadOnlyList<AlojamientoImagenDto> Imagenes);
 
 /// <summary>Arma los DTO de alojamientos con su imagen y sus temporadas (una consulta por tipo de dato).</summary>
 public sealed class AlojamientoEnsamblador(
@@ -30,14 +33,25 @@ public sealed class AlojamientoEnsamblador(
 
         var imagenes = await ImagenesAsync(lista, ct);
         var tarifas = (await alojamientos.TarifasAsync(lista.Select(a => a.Id).ToList(), ct)).ToLookup(t => t.AlojamientoId);
+        var galeria = await GaleriaAsync(lista, ct);
 
         return lista.Select(a => new AlojamientoAdminDto(
             a.Id, a.ProyectoId, a.Nombre, a.Descripcion, a.ImagenMediaId,
             a.ImagenMediaId is { } m ? imagenes.GetValueOrDefault(m) : null,
             a.Capacidad, a.HuespedesIncluidos, a.PrecioNoche, a.RecargoHuespedExtra, a.TarifaAseo, a.EstanciaMinima,
             a.AnuncioId, a.Publicado, a.Orden, UrlIcal(a.TokenIcal),
-            tarifas[a.Id].Select(t => new TarifaDto(t.Id, t.Nombre, t.Desde, t.Hasta, t.PrecioNoche)).ToList())).ToList();
+            tarifas[a.Id].Select(t => new TarifaDto(t.Id, t.Nombre, t.Desde, t.Hasta, t.PrecioNoche)).ToList(),
+            galeria[a.Id].ToList())).ToList();
     }
+
+    public async Task<AlojamientoAdminDto?> EnsamblarUnoAsync(long id, CancellationToken ct)
+        => await alojamientos.ObtenerAsync(id, ct) is { } a ? (await EnsamblarAsync([a], ct))[0] : null;
+
+    /// <summary>Galería de cada alojamiento (sin la portada), con su URL pública.</summary>
+    public async Task<ILookup<long, AlojamientoImagenDto>> GaleriaAsync(IReadOnlyList<AlojamientoRegistro> lista, CancellationToken ct)
+        => (await alojamientos.ImagenesAsync(lista.Select(a => a.Id).ToList(), ct)).ToLookup(
+            i => i.AlojamientoId,
+            i => new AlojamientoImagenDto(i.Id, i.MediaId, almacenamiento.ConstruirUrlPublica(i.StorageKey), i.TextoAlt, i.Orden));
 
     public async Task<IReadOnlyDictionary<long, MediaDto>> ImagenesAsync(IReadOnlyList<AlojamientoRegistro> lista, CancellationToken ct)
     {

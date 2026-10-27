@@ -206,6 +206,14 @@ export interface AlojamientoPublico {
   recargoHuespedExtra: number;
   tarifaAseo: number;
   estanciaMinima: number;
+  /** Galería (sin la portada `imagen`), en orden. */
+  imagenes: ImagenAlojamiento[];
+}
+
+export interface ImagenAlojamiento {
+  id: number;
+  url: string;
+  textoAlt: string;
 }
 
 export interface ReservaDirecta {

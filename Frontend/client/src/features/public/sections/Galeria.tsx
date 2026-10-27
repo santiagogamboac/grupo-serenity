@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { RichTitle } from "@/components/RichTitle";
 import type { DestinosContenido, ProyectoPublico } from "@/lib/types";
@@ -26,38 +26,9 @@ function fotosDe(proyectos: ProyectoPublico[]): Foto[] {
   return fotos;
 }
 
-/** Marca cada elemento con `is-visible` la primera vez que entra al viewport (animación ligera, solo opacity/transform). */
-function useAparecer<T extends HTMLElement>(cantidad: number) {
-  const ref = useRef<T>(null);
-  useEffect(() => {
-    const raiz = ref.current;
-    if (!raiz) return;
-    const items = Array.from(raiz.querySelectorAll<HTMLElement>("[data-aparecer]"));
-    if (typeof IntersectionObserver === "undefined") {
-      items.forEach(el => el.classList.add("is-visible"));
-      return;
-    }
-    const obs = new IntersectionObserver(
-      entradas => {
-        for (const e of entradas) {
-          if (e.isIntersecting) {
-            e.target.classList.add("is-visible");
-            obs.unobserve(e.target);
-          }
-        }
-      },
-      { threshold: 0.12 }
-    );
-    items.forEach(el => obs.observe(el));
-    return () => obs.disconnect();
-  }, [cantidad]);
-  return ref;
-}
-
 export function Galeria({ seccion, proyectos }: { seccion: DestinosContenido; proyectos: ProyectoPublico[] }) {
   const fotos = fotosDe(proyectos);
   const [abierta, setAbierta] = useState<number | null>(null);
-  const raiz = useAparecer<HTMLElement>(fotos.length);
 
   const mover = useCallback(
     (paso: number) => setAbierta(i => (i === null ? i : (i + paso + fotos.length) % fotos.length)),
@@ -83,7 +54,7 @@ export function Galeria({ seccion, proyectos }: { seccion: DestinosContenido; pr
   const actual = abierta !== null ? fotos[abierta] : null;
 
   return (
-    <section className="gallery-section section-pad" id="galeria" ref={raiz}>
+    <section className="gallery-section section-pad" id="galeria">
       <div className="page-width">
         <div className="gallery-heading" data-aparecer>
           {seccion.franjaEtiqueta && <div className="eyebrow">{seccion.franjaEtiqueta}</div>}
@@ -92,14 +63,13 @@ export function Galeria({ seccion, proyectos }: { seccion: DestinosContenido; pr
           </h2>
         </div>
 
-        <div className="gallery-grid" data-count={Math.min(fotos.length, 6)}>
+        <div className="gallery-grid cascada" data-aparecer data-count={Math.min(fotos.length, 6)}>
           {fotos.map((f, i) => (
             <button
               key={f.key}
               type="button"
               className={`gallery-tile gallery-tile--${i % 6}`}
-              style={{ transitionDelay: `${(i % 6) * 70}ms` }}
-              data-aparecer
+              style={{ "--i": i % 8 } as CSSProperties}
               onClick={() => setAbierta(i)}
               aria-label={`${TEXTOS.verFoto}: ${f.alt || f.lugar}`}
             >

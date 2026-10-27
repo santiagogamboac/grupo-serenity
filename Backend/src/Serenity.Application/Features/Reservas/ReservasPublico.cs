@@ -14,9 +14,12 @@ using Serenity.Domain;
 
 namespace Serenity.Application.Features.Reservas;
 
+public sealed record AlojamientoImagenPublicaDto(long Id, string Url, string TextoAlt);
+
 public sealed record AlojamientoPublicoDto(
     long Id, long ProyectoId, string Nombre, string Descripcion, MediaDto? Imagen, int Capacidad, int HuespedesIncluidos,
-    long PrecioNoche, long RecargoHuespedExtra, long TarifaAseo, int EstanciaMinima);
+    long PrecioNoche, long RecargoHuespedExtra, long TarifaAseo, int EstanciaMinima,
+    IReadOnlyList<AlojamientoImagenPublicaDto> Imagenes);
 
 /// <summary>Lo que la landing necesita para ofrecer la reserva en línea.</summary>
 public sealed record ReservaDirectaDto(bool PagoEnLinea, IReadOnlyList<AlojamientoPublicoDto> Alojamientos);
@@ -25,6 +28,9 @@ public sealed record ReservaDirectaDto(bool PagoEnLinea, IReadOnlyList<Alojamien
 public sealed class CalendarioAlojamientos(
     IAlojamientoRepository alojamientos, IAnuncioRepository anuncios, AnuncioSyncService sync, OpcionesAirbnb opcionesAirbnb)
 {
+    /// <summary>Tope de espera a Airbnb cuando se sincroniza en vivo antes de retener o cobrar.</summary>
+    public static readonly TimeSpan TimeoutEnVivo = TimeSpan.FromSeconds(10);
+
     public async Task<IReadOnlyList<OcupacionRegistro>> OcupacionAsync(AlojamientoRegistro a, DateOnly desde, DateOnly hasta, CancellationToken ct)
     {
         if (a.AnuncioId is { } anuncioId && await anuncios.ObtenerAsync(anuncioId, ct) is { IcalUrl: not null } anuncio
@@ -35,6 +41,34 @@ public sealed class CalendarioAlojamientos(
 
         return (await alojamientos.OcupacionAsync([a.Id], desde, hasta, ct)).Select(o => o.ARegistro()).ToList();
     }
+
+    /// <summary>
+    /// Sincroniza el anuncio vinculado sin esperar turno (justo antes de retener fechas o mandar a pagar). Si Airbnb no
+    /// responde a tiempo se sigue con la última sincronización: los bloqueos previos nunca se borran por un fallo.
+    /// </summary>
+    public async Task SincronizarEnVivoAsync(AlojamientoRegistro a, CancellationToken ct)
+    {
+        if (a.AnuncioId is not { } anuncioId || await anuncios.ObtenerAsync(anuncioId, ct) is not { IcalUrl: not null } anuncio)
+        {
+            return;
+        }
+
+        using var limite = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        limite.CancelAfter(TimeoutEnVivo);
+        try
+        {
+            await sync.SincronizarAsync(anuncio, limite.Token);
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            // Timeout propio: se decide con lo último que se sincronizó.
+        }
+    }
+
+    /// <summary>¿Las noches [llegada, salida) chocan con bloqueos de Airbnb o manuales? (Las reservas ya las excluye la BD.)</summary>
+    public async Task<bool> ChocaConBloqueosAsync(long alojamientoId, DateOnly llegada, DateOnly salida, CancellationToken ct)
+        => (await alojamientos.OcupacionAsync([alojamientoId], llegada, salida, ct))
+            .Any(o => o.Origen != "reserva" && o.Desde < salida && o.Hasta > llegada);
 }
 
 // ─── Disponibilidad ───────────────────────────────────────────────────────────
@@ -170,8 +204,8 @@ public sealed class CrearReservaCommandHandler(
             return Result.Failure<ReservaCreadaDto?>(cotizacion.Error!);
         }
 
-        // Refresca el iCal de Airbnb (si toca) antes de retener: la verificación final la hace el repositorio con lock.
-        await calendario.OcupacionAsync(a, d.Llegada, d.Salida, ct);
+        // Sincroniza Airbnb en vivo antes de retener: la verificación final (con lock) la hace el repositorio.
+        await calendario.SincronizarEnVivoAsync(a, ct);
 
         var c = cotizacion.Value!;
         var minutos = wompi.Habilitado ? opciones.MinutosRetencion : opciones.MinutosRetencionSinPago;
@@ -237,7 +271,9 @@ public sealed record UrlPagoDto(string CheckoutUrl);
 /// <summary>Nuevo intento de pago (p. ej. después de un pago rechazado), mientras la retención siga vigente.</summary>
 public sealed record NuevoPagoReservaCommand(string Codigo, string? Token) : IRequest<Result<UrlPagoDto>>;
 
-public sealed class NuevoPagoReservaCommandHandler(IReservaRepository reservas, OpcionesWompi wompi, OpcionesReservas opciones, TimeProvider reloj)
+public sealed class NuevoPagoReservaCommandHandler(
+    IReservaRepository reservas, IAlojamientoRepository alojamientos, CalendarioAlojamientos calendario,
+    OpcionesWompi wompi, OpcionesReservas opciones, TimeProvider reloj)
     : IRequestHandler<NuevoPagoReservaCommand, Result<UrlPagoDto>>
 {
     public async Task<Result<UrlPagoDto>> Handle(NuevoPagoReservaCommand request, CancellationToken ct)
@@ -256,8 +292,23 @@ public sealed class NuevoPagoReservaCommandHandler(IReservaRepository reservas, 
                 : "Esta reserva ya no admite pagos en línea.", ErrorTipo.Conflicto);
         }
 
+        // Justo antes de mandar a pagar: Airbnb pudo ocupar las fechas mientras la reserva estaba retenida.
+        if (await alojamientos.ObtenerAsync(r.AlojamientoId, ct) is { } a)
+        {
+            await calendario.SincronizarEnVivoAsync(a, ct);
+            if (await calendario.ChocaConBloqueosAsync(a.Id, r.Llegada, r.Salida, ct))
+            {
+                await reservas.CambiarEstadoAsync(r.Id, EstadosReserva.Cancelada, MotivoFechasOcupadas, ct);
+                return Result.Failure<UrlPagoDto>(
+                    "Lo sentimos: esas fechas se acaban de ocupar en otro canal. No se hizo ningún cobro; elige otras fechas.",
+                    ErrorTipo.Conflicto);
+            }
+        }
+
         return Result.Success(new UrlPagoDto(await ReservaPublica.UrlPagoAsync(r, reservas, wompi, opciones, ct)));
     }
+
+    public const string MotivoFechasOcupadas = "Las fechas se ocuparon en otro canal antes del pago.";
 }
 
 public sealed record VerificarPagoInput(string TransaccionId);
@@ -335,7 +386,7 @@ public sealed class IcalAlojamientoQueryHandler(IAlojamientoRepository alojamien
     public async Task<Result<string>> Handle(IcalAlojamientoQuery request, CancellationToken ct)
     {
         var a = request.Token.Length is >= 32 and <= 64 ? await alojamientos.ObtenerPorTokenIcalAsync(request.Token, ct) : null;
-        if (a is null)
+        if (a is null || !CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(a.TokenIcal), Encoding.UTF8.GetBytes(request.Token)))
         {
             return Result.Failure<string>("Calendario no encontrado.", ErrorTipo.NoEncontrado);
         }

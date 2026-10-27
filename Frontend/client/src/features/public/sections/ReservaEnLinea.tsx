@@ -56,6 +56,8 @@ interface Props {
   alojamientos: AlojamientoPublico[];
   pagoEnLinea: boolean;
   pedido?: PedidoDestino;
+  /** Página de detalle: el alojamiento ya está elegido y no se muestran los selectores. */
+  alojamientoFijoId?: number;
 }
 
 export function ReservaEnLinea({
@@ -64,15 +66,17 @@ export function ReservaEnLinea({
   alojamientos,
   pagoEnLinea,
   pedido,
+  alojamientoFijoId,
 }: Props) {
   const destinos = useMemo(
     () => proyectos.filter(p => alojamientos.some(a => a.proyectoId === p.id)),
     [proyectos, alojamientos]
   );
-  const [proyectoId, setProyectoId] = useState(destinos[0]?.id ?? 0);
+  const fijo = alojamientos.find(a => a.id === alojamientoFijoId);
+  const [proyectoId, setProyectoId] = useState(fijo?.proyectoId ?? destinos[0]?.id ?? 0);
   const opciones = alojamientos.filter(a => a.proyectoId === proyectoId);
   const [alojamientoId, setAlojamientoId] = useState<number | null>(
-    opciones.length === 1 ? opciones[0].id : null
+    fijo?.id ?? (opciones.length === 1 ? opciones[0].id : null)
   );
   const aloj = opciones.find(a => a.id === alojamientoId) ?? null;
 
@@ -198,7 +202,7 @@ export function ReservaEnLinea({
         </label>
       </div>
 
-      {destinos.length > 1 && (
+      {!fijo && destinos.length > 1 && (
         <label>
           {T.destino}
           <select
@@ -214,6 +218,7 @@ export function ReservaEnLinea({
         </label>
       )}
 
+      {!fijo && (
       <fieldset className="reserva-bloque">
         <legend>{T.alojamiento}</legend>
         <div
@@ -250,6 +255,7 @@ export function ReservaEnLinea({
           <p className="alojamiento-descripcion">{aloj.descripcion}</p>
         )}
       </fieldset>
+      )}
 
       {aloj && (
         <fieldset className="reserva-bloque">
