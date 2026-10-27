@@ -6,7 +6,6 @@ import { toast } from "sonner";
 import {
   CalendarX2,
   ChevronDown,
-  Copy,
   Pencil,
   Plus,
   Users,
@@ -38,6 +37,7 @@ import {
   type MediaRef,
 } from "../componentes";
 import type { AlojamientoAdmin } from "../tipos";
+import { AirbnbAlojamiento } from "./AirbnbAlojamiento";
 import { GaleriaAlojamientoAdmin } from "./GaleriaAlojamientoAdmin";
 
 const pesos = (etiqueta: string, min = 0) =>
@@ -208,7 +208,7 @@ function FilaAlojamiento({
         <div className="grid gap-6 border-t p-4 lg:grid-cols-2">
           <Temporadas alojamiento={a} />
           <Bloqueos alojamientoId={a.id} />
-          <EnlaceIcal url={a.urlIcal} />
+          <AirbnbAlojamiento alojamiento={a} />
           <div className="lg:col-span-2">
             <GaleriaAlojamientoAdmin alojamientoId={a.id} imagenes={a.imagenes} />
           </div>
@@ -448,40 +448,6 @@ function Bloqueos({ alojamientoId }: { alojamientoId: number }) {
   );
 }
 
-function EnlaceIcal({ url }: { url: string }) {
-  const copiar = async () => {
-    try {
-      await navigator.clipboard.writeText(url);
-      toast.success("Enlace copiado");
-    } catch {
-      toast.error("No se pudo copiar: selecciónalo y cópialo a mano.");
-    }
-  };
-
-  return (
-    <div className="lg:col-span-2">
-      <h4 className="mb-1 text-sm font-semibold">Calendario para Airbnb</h4>
-      <p className="mb-2 text-xs text-muted-foreground">
-        Para que Airbnb bloquee lo que se reserva en el sitio: en Airbnb →
-        Calendario → Disponibilidad → Sincronizar calendarios → Importar
-        calendario, pega este enlace. Es privado: no lo compartas.
-      </p>
-      <div className="flex gap-2">
-        <Input
-          readOnly
-          value={url}
-          aria-label="Enlace iCal del alojamiento"
-          onFocus={e => e.currentTarget.select()}
-          className="font-mono text-xs"
-        />
-        <Button type="button" variant="outline" onClick={copiar}>
-          <Copy /> Copiar
-        </Button>
-      </div>
-    </div>
-  );
-}
-
 function FormularioAlojamiento({
   proyectoId,
   alojamiento,
@@ -660,7 +626,7 @@ function FormularioAlojamiento({
       <Campo
         etiqueta="Anuncio de Airbnb vinculado (opcional)"
         htmlFor="aloj-anuncio"
-        ayuda="Si este alojamiento también está en Airbnb, las fechas ocupadas allá se bloquean aquí."
+        ayuda="Si este alojamiento también está en Airbnb, las fechas ocupadas allá se bloquean aquí. También puedes conectarlo desde la sección «Airbnb» del alojamiento."
       >
         <SelectNativo id="aloj-anuncio" {...register("anuncioId")}>
           <option value="">Ninguno</option>

@@ -70,7 +70,13 @@ export default function ReservaPage() {
   const marca = home?.contenido.marca;
 
   return (
-    <main className="site-shell reserva-page">
+    <main className="site-shell site-shell--glass reserva-page">
+      {/* Mismo fondo que la landing: la foto de portada desenfocada detrás del vidrio. */}
+      <div className="site-backdrop" aria-hidden="true">
+        {home?.contenido.hero.imagenPrincipal && (
+          <img src={home.contenido.hero.imagenPrincipal.url} alt="" />
+        )}
+      </div>
       <header className="reserva-page__cabecera">
         <Link
           href="/"

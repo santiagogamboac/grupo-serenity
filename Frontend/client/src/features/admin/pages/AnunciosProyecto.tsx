@@ -77,6 +77,7 @@ export function AnunciosProyecto({ proyectoId }: { proyectoId: number }) {
           <h2 className="text-lg font-semibold">Anuncios de Airbnb</h2>
           <p className="text-sm text-muted-foreground">
             Cada anuncio tiene su propio calendario. Con el enlace iCal, el sitio marca como ocupadas las fechas que Airbnb bloquea.
+            Lo normal es conectarlo desde su alojamiento (sección «Airbnb» de cada alojamiento, más arriba); aquí ves todos juntos.
           </p>
         </div>
         {editando === null && (
@@ -111,7 +112,7 @@ export function AnunciosProyecto({ proyectoId }: { proyectoId: number }) {
   );
 }
 
-function FilaAnuncio({ anuncio, onEditar }: { anuncio: AnuncioAdmin; onEditar: () => void }) {
+export function FilaAnuncio({ anuncio, onEditar }: { anuncio: AnuncioAdmin; onEditar: () => void }) {
   const sincronizar = useSincronizarAnuncio();
   const eliminar = useEliminarAnuncio();
   const [confirmar, setConfirmar] = useState(false);
@@ -169,7 +170,7 @@ function FilaAnuncio({ anuncio, onEditar }: { anuncio: AnuncioAdmin; onEditar: (
   );
 }
 
-function EstadoSync({ anuncio }: { anuncio: AnuncioAdmin }) {
+export function EstadoSync({ anuncio }: { anuncio: AnuncioAdmin }) {
   if (anuncio.icalUrl === null) {
     return <p className="mt-2 text-xs text-muted-foreground">Sin enlace iCal: el sitio no conoce las fechas ocupadas de este anuncio.</p>;
   }
@@ -195,14 +196,20 @@ function EstadoSync({ anuncio }: { anuncio: AnuncioAdmin }) {
   );
 }
 
-function FormularioAnuncio({
+export function FormularioAnuncio({
   proyectoId,
   anuncio,
   onCerrar,
+  nombreInicial,
+  onGuardado,
 }: {
   proyectoId: number;
   anuncio: AnuncioAdmin | null;
   onCerrar: () => void;
+  /** Nombre sugerido al crear (p. ej. el del alojamiento que se está conectando). */
+  nombreInicial?: string;
+  /** Se llama con el anuncio guardado, antes de cerrar (p. ej. para vincularlo al alojamiento). */
+  onGuardado?: (a: AnuncioAdmin) => Promise<unknown> | void;
 }) {
   const crear = useCrearAnuncio();
   const actualizar = useActualizarAnuncio();
@@ -214,7 +221,9 @@ function FormularioAnuncio({
     formState: { errors, isSubmitting },
   } = useForm<Valores>({
     resolver: zodResolver(esquema),
-    defaultValues: anuncio ? { nombre: anuncio.nombre, urlAnuncio: anuncio.urlAnuncio, icalUrl: anuncio.icalUrl ?? "", publicado: anuncio.publicado } : VACIO,
+    defaultValues: anuncio
+      ? { nombre: anuncio.nombre, urlAnuncio: anuncio.urlAnuncio, icalUrl: anuncio.icalUrl ?? "", publicado: anuncio.publicado }
+      : { ...VACIO, nombre: nombreInicial ?? "" },
   });
 
   const guardar = handleSubmit(async v => {
@@ -225,6 +234,7 @@ function FormularioAnuncio({
         : await crear.mutateAsync({ proyectoId, datos });
       if (r.ultimaSyncError) toast.warning("Anuncio guardado, pero el calendario no se pudo leer: " + r.ultimaSyncError);
       else toast.success(anuncio ? "Anuncio guardado" : "Anuncio agregado");
+      await onGuardado?.(r);
       onCerrar();
     } catch (e) {
       // useMutacion ya muestra el toast de error.

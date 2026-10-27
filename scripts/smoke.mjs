@@ -519,6 +519,28 @@ seccion('Reserva directa (alojamientos, reservas y pagos con Wompi)')
   const aloj = ca.json
   ok('la imagen del alojamiento queda en uso (borrar → 409)', (await api('DELETE', `/api/admin/media/${mediaA.id}`)).status === 409)
 
+  // Galería del alojamiento (página /alojamientos/:id). Se vacía al final del bloque para no bloquear la limpieza de medios.
+  {
+    const gal = `/api/admin/alojamientos/${aloj.id}/imagenes`
+    const g1 = await api('POST', gal, { body: { mediaId: mediaB.id, textoAlt: 'Sala' } })
+    ok('galería: agregar foto → 201 con imagenes', g1.status === 201 && g1.json?.imagenes?.length === 1 && g1.json.imagenes[0].url, g1.texto)
+    const g2 = await api('POST', gal, { body: { mediaId: mediaA.id, textoAlt: '' } })
+    const [fa, fb] = g2.json?.imagenes ?? []
+    ok('galería: segunda foto queda después', g2.status === 201 && fa?.mediaId === mediaB.id && fb?.mediaId === mediaA.id)
+    ok('galería: media inexistente → 400', (await api('POST', gal, { body: { mediaId: 999999, textoAlt: '' } })).status === 400)
+    ok('galería: alojamiento inexistente → 404', (await api('POST', '/api/admin/alojamientos/999999/imagenes', { body: { mediaId: mediaA.id, textoAlt: '' } })).status === 404)
+    ok('galería: alt de más de 200 → 400', (await api('PUT', `${gal}/${fa.id}`, { body: { textoAlt: 'x'.repeat(201) } })).status === 400)
+    ok('galería: cambiar alt → 2xx', [200, 204].includes((await api('PUT', `${gal}/${fb.id}`, { body: { textoAlt: 'Piscina' } })).status))
+    ok('galería: reordenar con ids ajenos → 400', (await api('PUT', `${gal}/orden`, { body: { ids: [fa.id, 999999] } })).status === 400)
+    ok('galería: reordenar → 2xx', [200, 204].includes((await api('PUT', `${gal}/orden`, { body: { ids: [fb.id, fa.id] } })).status))
+    const pub = (await api('GET', '/api/public/home', { auth: false })).json?.reservaDirecta?.alojamientos?.find(x => x.id === aloj.id)
+    ok('galería pública en el orden nuevo y sin mediaId',
+      pub?.imagenes?.length === 2 && pub.imagenes[0].textoAlt === 'Piscina' && pub.imagenes.every(i => i.url && i.mediaId === undefined), JSON.stringify(pub?.imagenes))
+    ok('galería: quitar foto → 2xx', [200, 204].includes((await api('DELETE', `${gal}/${fa.id}`)).status))
+    ok('galería: quitar la misma otra vez → 404', (await api('DELETE', `${gal}/${fa.id}`)).status === 404)
+    ok('galería: quitar la última → 2xx', [200, 204].includes((await api('DELETE', `${gal}/${fb.id}`)).status))
+  }
+
   // Temporadas
   const tarifas = `/api/admin/alojamientos/${aloj.id}/tarifas`
   const t1 = await api('POST', tarifas, { body: { nombre: 'Temporada alta', desde: '2027-06-10', hasta: '2027-06-12', precioNoche: 450000 } })

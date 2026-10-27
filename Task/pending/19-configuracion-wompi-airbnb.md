@@ -2,7 +2,7 @@
 
 **Estado: LISTO PARA EMPEZAR** cuando se cumplan los requisitos de §0. Sin cambios de código: solo configuración, datos y
 verificación. Marca cada casilla con fecha y evidencia; si la sesión se corta, retoma desde la primera sin marcar.
-El código que se configura aquí ya está en `main` (ver `17-reserva-directa-wompi.md` y `18-detalle-alojamiento/`).
+El código que se configura aquí ya está en `main` (ver `17-reserva-directa-wompi.md` y `../done/18-detalle-alojamiento/`).
 
 ## Reglas (para cualquier persona o agente que lo ejecute)
 - Nunca escribas en el navegador ni en el chat contraseñas, códigos de verificación ni datos de tarjetas reales. Si Wompi o

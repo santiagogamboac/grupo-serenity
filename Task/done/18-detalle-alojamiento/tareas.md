@@ -14,7 +14,8 @@ el árbol de trabajo es compartido.
 - [x] 2026-10-26 V005 `alojamiento_imagenes` + repositorio + `AlojamientoImagenes.cs` (agregar/alt/eliminar/reordenar) +
       endpoints en `AdminReservasController` + `imagenes` en `AlojamientoAdminDto` y `AlojamientoPublicoDto` (Home) +
       `media.EstaEnUsoAsync` cuenta la galería. `dotnet build` OK.
-- [ ] Bloque del smoke para la galería (smoke.mjs es de serenity-24: coordinar) y prueba contra el stack.
+- [x] 2026-10-26 Bloque de galería en `scripts/smoke.mjs` (después del corte SOLO_PUBLICO; se vacía al final).
+      Smoke completo contra el stack: 227 OK, 0 fallidas.
 
 ## T2. Cierre de doble reserva (D2)
 - [x] 2026-10-26 `CalendarioAlojamientos.SincronizarEnVivoAsync` (sin turno, timeout 10 s) en crear reserva y en
@@ -43,10 +44,17 @@ el árbol de trabajo es compartido.
       reconstruida (V005 aplicada; `/api/public/home` devuelve `imagenes`).
 - [x] 2026-10-26 Navegador: `/alojamientos/5` a 1440 y 390 px, sin scroll horizontal ni errores de consola (se corrigió un
       useEffect que devolvía valor y el salto de línea de "Volver" en móvil).
-- [ ] `node scripts/smoke.mjs` contra el stack + bloque de galería en el smoke; reservar de punta a punta con Wompi sandbox.
+- [x] 2026-10-26 Smoke 227/227. Reservar de punta a punta con Wompi sandbox → `Task/pending/19-configuracion-wompi-airbnb.md` §1.
 - [x] 2026-10-26 Commits `45b11d0` y `4c0e87d` subidos a origin/main.
 - [ ] Mover la carpeta a `Task/done/` cuando T1–T5 estén en `[x]`. Producción (Wompi, dominio, Airbnb) quedó en
       `Task/pending/19-configuracion-wompi-airbnb.md` (instructivo paso a paso).
+
+## T6. Extras aprobados el 2026-10-26
+- [x] `/reserva/:codigo` con vidrio claro (fondo difuso + tarjeta esmerilada). Se conservan el sondeo y la verificación `?id=`.
+- [x] Admin: vínculo con Airbnb unificado en cada alojamiento (`AirbnbAlojamiento.tsx`): conectar o crear el anuncio,
+      sincronizar, editar, desvincular y feed propio para copiar. `AnunciosProyecto` reutiliza sus componentes y sigue
+      como vista general.
+- [x] `A_EJECUTAR_PARA_SEBASTIAN_HTTPS.md`: prompt para dominio definitivo + certbot en la VPS compartida.
 
 ## Bitácora
 - 2026-10-26: commit + push a origin/main. Para el despliegue: `A_EJECUTAR_PARA_SEBASTIAN.md` (prompt con manejo de

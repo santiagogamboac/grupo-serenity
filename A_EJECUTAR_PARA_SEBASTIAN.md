@@ -80,4 +80,4 @@ preguntarme en los puntos marcados con ⛔.
 - Dominio definitivo. Hay que fijarlo **antes** de pegar el feed `.ics` en Airbnb: si después cambia, hay que reconectar
   cada calendario.
 - Cargar en el panel los alojamientos reales con sus fotos y vincular cada uno con su anuncio de Airbnb.
-- Plan y estado completos: `Task/pending/18-detalle-alojamiento/` (`tareas.md` es el estado vivo).
+- Plan y estado completos: `Task/done/18-detalle-alojamiento/` (`tareas.md` es el estado vivo).

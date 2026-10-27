@@ -87,7 +87,7 @@ falso ✔). En producción: `pagoEnLinea=false` (**faltan las llaves de Wompi**)
 ## 5. Fases y checklist
 
 > Checklist **original** del plan (no se actualiza). Estado real: `tareas.md`. A–D quedaron hechas el 2026-10-26, salvo la
-> sección "Airbnb" unificada dentro del alojamiento (D, primera casilla). E–F pasaron a `../19-configuracion-wompi-airbnb.md`.
+> sección "Airbnb" unificada dentro del alojamiento (D, primera casilla). E–F pasaron a `../../pending/19-configuracion-wompi-airbnb.md`.
 
 ### A. Backend: cierre de la ventana de doble reserva
 - [ ] `CalendarioAlojamientos.OcupacionAsync(..., forzar: true)` en crear reserva y nueva URL de pago (timeout 10 s; si Airbnb
