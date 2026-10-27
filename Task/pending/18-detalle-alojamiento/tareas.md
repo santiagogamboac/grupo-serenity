@@ -41,7 +41,9 @@ el árbol de trabajo es compartido.
 ## T5. Verificación y entrega
 - [x] 2026-10-26 `dotnet test` 133/133, `pnpm check` 0 errores, `pnpm test` 13/13, `vite build` OK; api local
       reconstruida (V005 aplicada; `/api/public/home` devuelve `imagenes`).
-- [ ] `node scripts/smoke.mjs` contra el stack y revisión en el navegador del detalle (1440/820/390).
+- [x] 2026-10-26 Navegador: `/alojamientos/5` a 1440 y 390 px, sin scroll horizontal ni errores de consola (se corrigió un
+      useEffect que devolvía valor y el salto de línea de "Volver" en móvil).
+- [ ] `node scripts/smoke.mjs` contra el stack + bloque de galería en el smoke; reservar de punta a punta con Wompi sandbox.
 - [ ] Commit propio (después del de serenity-24) y `git push origin main`.
 - [ ] Mover la carpeta a `Task/done/` cuando T1–T5 estén en `[x]`. Producción (Wompi, dominio, Airbnb) queda en
       `analisis-y-plan.md` §5 E–F: requiere al dueño.

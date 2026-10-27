@@ -38,7 +38,9 @@ export default function AlojamientoPage() {
     if (aloj && marca) document.title = T.tituloPagina(aloj.nombre, plainRich(marca));
   }, [aloj, marca]);
 
-  useEffect(() => window.scrollTo(0, 0), [id]);
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [id]);
 
   if (isPending) {
     return (
