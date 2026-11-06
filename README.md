@@ -11,7 +11,7 @@ Serenity/
 ├─ Backend/    API .NET 10 (Serenity.slnx) — Domain · Application · Infrastructure · Api · Tests
 ├─ Frontend/   SPA Vite + React 19 — sitio público + panel /admin
 ├─ Task/       plan de trabajo por features (pending/ → done/) y contrato de API
-├─ scripts/    smoke.mjs (E2E de la API) · run-api-local.sh · deploy.sh · backup.sh
+├─ scripts/    smoke.mjs (E2E de la API) · destinos-ejemplo.mjs · run-api-local.sh · deploy.sh · backup.sh
 ├─ caddy/      Caddyfile (HTTPS de producción)
 ├─ docker-compose.yml        stack de desarrollo
 └─ docker-compose.prod.yml   override de producción (Caddy, sin puertos internos, backups) — ver DEPLOY.md
@@ -60,6 +60,19 @@ cd Frontend && pnpm check && pnpm test && pnpm exec vite build   # tipos, vitest
 
 `smoke.mjs` deja la base como la encontró. Espera ~1 min en un punto porque prueba el límite
 de 5 solicitudes/min por IP.
+
+## Destinos de ejemplo
+
+```bash
+node scripts/destinos-ejemplo.mjs              # Cartagena, Guatapé, Salento y Villa de Leyva (+ un alojamiento c/u)
+BASE=http://localhost:8090 node scripts/destinos-ejemplo.mjs   # …a través de nginx
+node scripts/destinos-ejemplo.mjs --limpiar    # los borra (los que tengan reservas no se pueden borrar)
+node scripts/destinos-ejemplo.mjs --sin-hero   # no toca la portada
+```
+
+Usa el API del panel (credenciales de `.env`) y las imágenes de `Backend/seed/images/`. Es idempotente: omite los
+destinos que ya existen y reutiliza las imágenes por nombre. Además deja la portada con la piscina como imagen
+principal y la sala como secundaria. Pensado para desarrollo y demos, no para producción.
 
 ## Qué se administra y dónde
 
