@@ -1,11 +1,10 @@
 #!/usr/bin/env node
 // Inserta destinos (proyectos) de ejemplo, cada uno con su galería y un alojamiento, usando el API del panel.
-// También deja la portada (hero) con la imagen anterior: piscina como principal y sala como secundaria.
+// No toca la portada (hero): su imagen principal sigue siendo la sala.
 //
 //   node scripts/destinos-ejemplo.mjs                              # contra http://localhost:8081 (API directa)
 //   BASE=http://localhost:8090 node scripts/destinos-ejemplo.mjs   # contra nginx (web)
 //   node scripts/destinos-ejemplo.mjs --limpiar                    # borra los destinos de ejemplo
-//   node scripts/destinos-ejemplo.mjs --sin-hero                   # no toca la portada
 //
 // Credenciales: ADMIN_CORREO / ADMIN_PASSWORD del entorno o del archivo .env de la raíz.
 // Idempotente: un destino que ya existe (mismo nombre) se omite; las imágenes se reutilizan por nombre de archivo.
@@ -27,16 +26,7 @@ if (existsSync(join(raiz, '.env'))) {
 
 const BASE = (env.BASE ?? env.SMOKE_BASE ?? 'http://localhost:8081').replace(/\/$/, '')
 const LIMPIAR = process.argv.includes('--limpiar')
-const SIN_HERO = process.argv.includes('--sin-hero')
 if (!env.ADMIN_CORREO || !env.ADMIN_PASSWORD) throw new Error('Falta ADMIN_CORREO / ADMIN_PASSWORD (env o .env).')
-
-// Portada anterior (antes de 45b11d0): la piscina era la imagen principal y la sala la secundaria.
-const HERO = {
-  imagenPrincipalArchivo: 'hero-piscina.jpeg',
-  imagenPrincipalAlt: 'Piscina frente al mar en Santa Marta',
-  imagenSecundariaArchivo: 'hero-sala.jpeg',
-  imagenSecundariaAlt: 'Sala luminosa de un alojamiento Serenity',
-}
 
 const DESTINOS = [
   {
@@ -197,19 +187,6 @@ async function insertarDestinos() {
   }
 }
 
-async function restaurarHero() {
-  const hero = (await exigir(api('GET', '/api/admin/contenido'), [200], 'leer contenido')).hero
-  const cuerpo = { ...hero }
-  delete cuerpo.imagenPrincipal
-  delete cuerpo.imagenSecundaria
-  cuerpo.imagenPrincipalMediaId = await mediaId(HERO.imagenPrincipalArchivo)
-  cuerpo.imagenPrincipalAlt = HERO.imagenPrincipalAlt
-  cuerpo.imagenSecundariaMediaId = await mediaId(HERO.imagenSecundariaArchivo)
-  cuerpo.imagenSecundariaAlt = HERO.imagenSecundariaAlt
-  await exigir(api('PUT', '/api/admin/contenido/hero', { body: cuerpo }), [200], 'actualizar hero')
-  console.log(`  ✓ portada: principal ${HERO.imagenPrincipalArchivo}, secundaria ${HERO.imagenSecundariaArchivo}`)
-}
-
 async function limpiar() {
   const nombres = new Set(DESTINOS.map((d) => d.nombre))
   for (const p of await exigir(api('GET', '/api/admin/proyectos'), [200], 'listar proyectos')) {
@@ -232,9 +209,5 @@ if (LIMPIAR) {
   await cargarBiblioteca()
   console.log('\nDestinos de ejemplo')
   await insertarDestinos()
-  if (!SIN_HERO) {
-    console.log('\nPortada')
-    await restaurarHero()
-  }
 }
 console.log('\nListo.')

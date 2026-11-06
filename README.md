@@ -67,12 +67,11 @@ de 5 solicitudes/min por IP.
 node scripts/destinos-ejemplo.mjs              # Cartagena, Guatapé, Salento y Villa de Leyva (+ un alojamiento c/u)
 BASE=http://localhost:8090 node scripts/destinos-ejemplo.mjs   # …a través de nginx
 node scripts/destinos-ejemplo.mjs --limpiar    # los borra (los que tengan reservas no se pueden borrar)
-node scripts/destinos-ejemplo.mjs --sin-hero   # no toca la portada
 ```
 
 Usa el API del panel (credenciales de `.env`) y las imágenes de `Backend/seed/images/`. Es idempotente: omite los
-destinos que ya existen y reutiliza las imágenes por nombre. Además deja la portada con la piscina como imagen
-principal y la sala como secundaria. Pensado para desarrollo y demos, no para producción.
+destinos que ya existen y reutiliza las imágenes por nombre. No toca la portada. Pensado para desarrollo y demos,
+no para producción.
 
 ## Qué se administra y dónde
 
