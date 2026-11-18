@@ -128,6 +128,32 @@ nuevo (candado válido, reserva de prueba hecha, correo de aviso recibido):
 2. Revisa que el correo del dominio no dependa del hosting (los MX). Si depende, migra el correo antes de cancelar.
 3. Cancela el plan de hosting.
 
+## Desplegar desde Windows (producción y pruebas)
+
+Guía completa (organización, preparación de cada ambiente, flujo entre ambientes, reversión y problemas):
+**[GUIA-DESPLIEGUE.md](GUIA-DESPLIEGUE.md)**. Resumen:
+
+Desde tu PC, sin entrar al servidor: doble clic en **`deploy-produccion.bat`** o **`deploy-pruebas.bat`** (o
+`.\scripts\deploy-remoto.ps1 -Ambiente pruebas`). Por SSH hace `git pull` de la rama en el clon del ambiente, verifica
+`.env` y archivos, pide confirmación (en producción hay que escribir `produccion`) y corre `scripts/deploy.sh` allá: respaldo
+previo de la base (solo producción, `backups/predeploy-*.sql.gz`), build, `up -d`, `/health` y smoke. Despliega lo que está
+en **origin**: haz `git push` antes.
+
+- Ambientes en `scripts/deploy.ambientes.psd1` (servidor, carpeta, rama, archivos compose). Tu usuario SSH y tu llave van
+  en `scripts/deploy.ambientes.local.psd1` (ignorado por git), con la misma forma y solo las claves que cambian:
+  `@{ produccion = @{ Usuario = 'ubuntu' }; pruebas = @{ Usuario = 'ubuntu' } }`. Necesitas SSH con llave (sin contraseña).
+- Parámetros: `-Rama feature/x` (p. ej. ensayar una rama en pruebas), `-Usuario`, `-Servidor`, `-Llave`, `-SinPull`,
+  `-SinConfirmar`. Los `.bat` los pasan tal cual.
+- **Pruebas** es un segundo stack en la misma VPS: clon aparte (`~/serenity-pruebas`), proyecto compose
+  `serenity-pruebas` (volúmenes y contenedores propios) y `docker-compose.pruebas.yml` (sin puertos ni Caddy; `web` entra
+  a la red `edge` del proxy como `serenity-pruebas-web`). Una sola vez en el servidor:
+  `git clone <url-del-repo> ~/serenity-pruebas && cd ~/serenity-pruebas && cp .env.pruebas.example .env` (secretos
+  distintos a los de producción y Wompi **sandbox**), y en el proxy público un server block para el subdominio de pruebas
+  con HTTPS y `proxy_pass http://serenity-pruebas-web:80`.
+- En la VPS compartida, producción no puede usar `docker-compose.prod.yml` tal cual (Caddy pide 80/443, que son de
+  urbanos-nginx): pon en `ComposeFiles` de `produccion` los archivos que usa hoy ese servidor. El script se detiene si
+  detecta ese choque antes de tocar nada.
+
 ## Operación
 
 ```bash

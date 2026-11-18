@@ -1,0 +1,46 @@
+# Pruebas: segundo stack en la misma VPS que producción. Se aplica encima de docker-compose.yml (sin
+# docker-compose.prod.yml) y con otro nombre de proyecto, para que volúmenes y redes no choquen:
+#
+#   docker compose -p serenity-pruebas --env-file .env -f docker-compose.yml -f docker-compose.pruebas.yml up -d --build
+#   (lo hace scripts/deploy.sh, invocado por scripts/deploy-remoto.ps1 -Ambiente pruebas / deploy-pruebas.bat)
+#
+# Cambios frente a docker-compose.yml:
+#   - Sin container_name fijos (serenity_api, …): toman <proyecto>-<servicio>-1 y no chocan con producción.
+#   - Sin puertos en el host. El proxy público de la VPS (urbanos-nginx, dueño de 80/443) llega a `web` por la red
+#     Docker externa PROXY_RED (por defecto `edge`) con el alias WEB_ALIAS (por defecto serenity-pruebas-web).
+#   - Sin Caddy ni backup diario (son de docker-compose.prod.yml).
+# Requiere Docker Compose ≥ 2.24 (etiqueta !reset).
+
+services:
+  postgres:
+    container_name: !reset null
+    ports: !reset []
+
+  minio:
+    container_name: !reset null
+    ports: !reset []
+
+  minio-init:
+    container_name: !reset null
+
+  api:
+    container_name: !reset null
+    ports: !reset []
+
+  web:
+    container_name: !reset null
+    ports: !reset []
+    networks:
+      default:
+      proxy:
+        aliases:
+          - ${WEB_ALIAS:-serenity-pruebas-web}
+
+  mailpit:
+    container_name: !reset null
+    ports: !reset []
+
+networks:
+  proxy:
+    external: true
+    name: ${PROXY_RED:-edge}

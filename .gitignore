@@ -27,3 +27,6 @@ Thumbs.db
 
 # Backups de producción (contenedor backup)
 backups/
+
+# Ajustes de despliegue propios de cada PC (usuario SSH, llave)
+scripts/deploy.ambientes.local.psd1

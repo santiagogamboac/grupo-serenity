@@ -118,6 +118,8 @@ BCrypt; subida de imágenes validada por firma binaria (sin SVG); enlaces editab
 
 `docker-compose.prod.yml` + `scripts/deploy.sh` + `.env.prod.example`. Guía paso a paso (VPS, DNS, Wompi, Airbnb y baja
 del WordPress) en **[DEPLOY.md](DEPLOY.md)**.
+Organización de los ambientes (pruebas y producción en la misma VPS) y despliegue desde Windows con
+`deploy-pruebas.bat` / `deploy-produccion.bat`: **[GUIA-DESPLIEGUE.md](GUIA-DESPLIEGUE.md)**.
 
 ## Pendiente
 

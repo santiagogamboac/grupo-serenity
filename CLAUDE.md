@@ -19,6 +19,7 @@ docker compose up -d postgres minio minio-init && bash scripts/run-api-local.sh 
 cd Backend && dotnet build Serenity.slnx && dotnet test Serenity.slnx
 SMOKE_BASE=http://localhost:8090 node scripts/smoke.mjs   # E2E de la API contra el stack levantado
 bash scripts/deploy.sh                        # en el servidor de producción (ver DEPLOY.md)
+deploy-produccion.bat / deploy-pruebas.bat    # desde Windows por SSH (scripts/deploy-remoto.ps1 + deploy.ambientes.psd1)
 cd Frontend && pnpm check && pnpm test && pnpm exec vite build
 ```
 
